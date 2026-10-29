@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Root widget. Theme and router are wired in M1/M2; for now it shows a
-/// placeholder so the bootstrap path can be verified on device.
-class HaraPlayApp extends StatelessWidget {
+import '../core/theme/hara_theme.dart';
+import '../features/design_gallery/presentation/design_gallery_screen.dart';
+import '../features/settings/presentation/theme_mode_controller.dart';
+
+/// Root widget. The router replaces the design gallery as home in M2.
+class HaraPlayApp extends ConsumerWidget {
   const HaraPlayApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp(
       title: 'HaraPlay',
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Text(
-            'HaraPlay',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
-          ),
-        ),
-      ),
+      theme: HaraTheme.light,
+      darkTheme: HaraTheme.dark,
+      themeMode: ref.watch(themeModeProvider),
+      home: const DesignGalleryScreen(),
     );
   }
 }
