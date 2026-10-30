@@ -17,26 +17,55 @@ final _website = RegExp(
   caseSensitive: false,
 );
 final _letterOrDigit = RegExp(r'[\p{L}\p{N}]', unicode: true);
+final _bracketOnly = RegExp(r'^(?:\(.*\)|\[.*\])$');
+
+// Download noise at the end of a title: "(Lyrics)", "[Official Video]", …
+final _trailingNoise = RegExp(
+  r'\s*[(\[]\s*(?:lyrics?|lyric video|official video|official music video|'
+  r'official audio|audio|hd|hq)\s*[)\]]\s*$',
+  caseSensitive: false,
+);
 final _letter = RegExp(r'\p{L}', unicode: true);
 
 /// Parses [fileStem] (the file name without extension). Returns null unless
-/// the pattern is unambiguous: exactly one spaced dash, a plausible artist
-/// (has a letter, at most 60 characters, not a website) and a non-empty
-/// title.
+/// the pattern is unambiguous: exactly one spaced dash (a trailing part that
+/// is only a bracket joins the title), a plausible artist (has a letter, at
+/// most 60 characters, not a website) and a non-empty title. Download noise
+/// like "(Lyrics)" is stripped from the title.
 FilenameTags? inferFromFileName(String fileStem) {
   var name = fileStem.trim();
   final track = _leadingTrack.firstMatch(name);
   if (track != null) name = name.substring(track.end);
 
-  final parts = name.split(_separator);
+  final parts = name.split(_separator).map((p) => p.trim()).toList();
+  // "Artist - Title - (Lyrics)": a last part that is only a bracket belongs
+  // to the title.
+  final notes = <String>[];
+  while (parts.length > 2 && _bracketOnly.hasMatch(parts.last)) {
+    notes.insert(0, parts.removeLast());
+  }
+  if (notes.isNotEmpty) parts.last = [parts.last, ...notes].join(' ');
   if (parts.length != 2) return null;
-  final artist = parts[0].trim();
-  final title = parts[1].trim();
+  final artist = parts[0];
+  final title = stripDownloadNoise(parts[1]);
 
   if (artist.isEmpty || artist.length > 60) return null;
   if (!_letter.hasMatch(artist) || _website.hasMatch(artist)) return null;
   if (!_letterOrDigit.hasMatch(title)) return null;
   return FilenameTags(artist: artist, title: title);
+}
+
+/// Removes trailing download noise such as "(Lyrics)" or "[Official Video]"
+/// (repeatedly), keeping any other bracket text. Never returns an empty
+/// title. Only used for titles guessed from file names.
+String stripDownloadNoise(String title) {
+  var result = title;
+  while (true) {
+    final stripped = result.replaceFirst(_trailingNoise, '');
+    if (stripped == result || !_letterOrDigit.hasMatch(stripped)) break;
+    result = stripped;
+  }
+  return result.trim();
 }
 
 /// The file name of [path] without directory or extension.

@@ -15,7 +15,7 @@ void main() {
       expectParsed(
         'Some Artist - A Song (Feat. Guest) [Official Video]',
         'Some Artist',
-        'A Song (Feat. Guest) [Official Video]',
+        'A Song (Feat. Guest)',
       );
     });
 
@@ -25,7 +25,7 @@ void main() {
       expectParsed(
         'Remixer -  Is It Me_ __ Singer (Lyrics)',
         'Remixer',
-        'Is It Me_ __ Singer (Lyrics)',
+        'Is It Me_ __ Singer',
       );
     });
 
@@ -46,13 +46,74 @@ void main() {
       expectParsed('ユイカ - 好きだから', 'ユイカ', '好きだから');
     });
 
+    test('a final bracket-only part joins the title', () {
+      expectParsed('Remixer - Paralyzed - (Lyrics)', 'Remixer', 'Paralyzed');
+      expectParsed('Remixer - Song - (Live)', 'Remixer', 'Song (Live)');
+      expectParsed(
+        'Remixer - Song - [Remix] - (HD)',
+        'Remixer',
+        'Song [Remix]',
+      );
+    });
+
+    test('download noise is stripped, other brackets kept', () {
+      for (final noise in [
+        '(Lyrics)',
+        '(lyrics)',
+        '(Lyric Video)',
+        '(Official Video)',
+        '(OFFICIAL MUSIC VIDEO)',
+        '(Official Audio)',
+        '(Audio)',
+        '(HD)',
+        '(HQ)',
+        '[Lyrics]',
+        '[Official Music Video]',
+        '[hd]',
+        '( Lyrics )',
+      ]) {
+        expectParsed(
+          'Mono Lisa - Night Drive $noise',
+          'Mono Lisa',
+          'Night Drive',
+        );
+      }
+      expectParsed(
+        'Mono Lisa - Night Drive (Remix) (Lyrics) [HD]',
+        'Mono Lisa',
+        'Night Drive (Remix)',
+      );
+      expectParsed(
+        'Mono Lisa - Night Drive (feat. Kai)',
+        'Mono Lisa',
+        'Night Drive (feat. Kai)',
+      );
+      expectParsed(
+        'Mono Lisa - Night Drive (Live)',
+        'Mono Lisa',
+        'Night Drive (Live)',
+      );
+      // Noise in the middle stays: only the end is cleaned.
+      expectParsed(
+        'Mono Lisa - (Lyrics) Night Drive',
+        'Mono Lisa',
+        '(Lyrics) Night Drive',
+      );
+      // A title that is only noise is kept rather than emptied.
+      expectParsed(
+        'Mono Lisa - (Official Video)',
+        'Mono Lisa',
+        '(Official Video)',
+      );
+    });
+
     test('ambiguous or implausible names are left alone', () {
       for (final stem in [
         'Night Drive', // no separator
         'Remixer  Umbrella Lyrics', // no dash
         'Artist-Title', // unspaced dash: often part of a word
-        'Remixer - Song - (Lyrics)', // two separators
         'A - B - C',
+        'A - B - C (Lyrics)', // last part is not only a bracket
         'y2mate.com - Some Song', // website, not an artist
         'www.example.net - Some Song',
         '01 - Night Drive', // track number and title only
@@ -87,6 +148,15 @@ void main() {
       );
       expect(inferred, isFalse);
       expect(tags.artist, 'Tagged');
+    });
+
+    test('real tags keep their download noise', () {
+      final (tags, inferred) = withFilenameTags(
+        const SongTags(title: 'Night Drive (Official Video)', artist: 'Tag'),
+        path,
+      );
+      expect(inferred, isFalse);
+      expect(tags.title, 'Night Drive (Official Video)');
     });
 
     test('never overwrites a real title tag', () {

@@ -8,12 +8,12 @@ import '../../../core/database/app_database.dart';
 import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_chip.dart';
+import '../../player/presentation/play_actions.dart';
 import 'library_providers.dart';
 import 'widgets/album_card.dart';
 import 'widgets/detail_header.dart';
 import 'widgets/detail_scaffold.dart';
 import 'widgets/library_song_tile.dart';
-import 'widgets/playback_soon.dart';
 
 class AlbumDetailScreen extends ConsumerWidget {
   const AlbumDetailScreen({super.key, required this.albumId});
@@ -54,8 +54,8 @@ class AlbumDetailScreen extends ConsumerWidget {
               HaraChip(value: '${album!.year}', label: 'Year'),
             ...countChips(songs, noun: 'Track'),
           ],
-          onPlay: () => showPlaybackComingSoon(context),
-          onShuffle: () => showPlaybackComingSoon(context),
+          onPlay: () => playSongs(ref, songs, source: PlaySource.album),
+          onShuffle: () => shuffleSongs(ref, songs, source: PlaySource.album),
         );
       },
       songList: (songs) {
@@ -78,6 +78,12 @@ class AlbumDetailScreen extends ConsumerWidget {
                 song: song,
                 showAlbum: false,
                 showTrackNumber: true,
+                onTap: () => playSongs(
+                  ref,
+                  songs,
+                  index: songs.indexOf(song),
+                  source: PlaySource.album,
+                ),
               ),
             ),
             final String label => _DiscHeader(label: label),

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/player/presentation/mini_player.dart';
 import 'bottom_nav.dart';
 
-/// Scaffold around the four tabs: tab content, (from M6) the docked mini
-/// player, and the bottom navigation.
+/// Scaffold around the four tabs: tab content, the docked mini player, and
+/// the bottom navigation.
 ///
 /// Android back first pops the current tab's own stack (handled by
 /// go_router). At a tab root it returns to Home; on Home it leaves the app.
@@ -31,9 +32,15 @@ class AppShell extends StatelessWidget {
       },
       child: Scaffold(
         body: navigationShell,
-        bottomNavigationBar: HaraBottomNav(
-          currentIndex: navigationShell.currentIndex,
-          onSelected: _selectTab,
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const MiniPlayer(),
+            HaraBottomNav(
+              currentIndex: navigationShell.currentIndex,
+              onSelected: _selectTab,
+            ),
+          ],
         ),
       ),
     );

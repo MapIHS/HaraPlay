@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:haraplay/core/artwork/artwork_cache.dart';
+import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
 import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
 import 'package:haraplay/features/library/data/file_tag_reader.dart';
 import 'package:haraplay/features/library/data/tag_merge.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
+import 'package:haraplay/features/player/domain/player.dart';
+import 'package:haraplay/features/player/domain/queue_song.dart';
 
 /// Permission service whose answers are scripted by the test.
 class FakeMediaPermissionService implements MediaPermissionService {
@@ -109,4 +113,71 @@ class FakeArtworkCache extends ArtworkCache {
     requests.add(request);
     return null;
   }
+}
+
+/// Records what the UI asks the player to do; statuses are pushed by tests.
+class FakePlayer implements Player {
+  final _status = StreamController<PlaybackStatus>.broadcast();
+  final _position = StreamController<Duration>.broadcast();
+  PlaybackStatus _current = PlaybackStatus.idle;
+
+  final played = <(List<QueueSong>, int, PlaySource)>[];
+  int toggles = 0;
+  int nexts = 0;
+  int previouses = 0;
+
+  void emit(PlaybackStatus status) {
+    _current = status;
+    _status.add(status);
+  }
+
+  void emitPosition(Duration position) => _position.add(position);
+
+  @override
+  Stream<PlaybackStatus> get status async* {
+    yield _current;
+    yield* _status.stream;
+  }
+
+  @override
+  PlaybackStatus get currentStatus => _current;
+
+  @override
+  Stream<Duration> get position => _position.stream;
+
+  @override
+  Future<void> playSongs(
+    List<QueueSong> songs, {
+    int startIndex = 0,
+    required PlaySource source,
+  }) async {
+    played.add((songs, startIndex, source));
+    emit(
+      PlaybackStatus(
+        song: songs[startIndex],
+        playing: true,
+        buffering: false,
+        duration: songs[startIndex].duration,
+      ),
+    );
+  }
+
+  @override
+  Future<void> togglePlay() async {
+    toggles++;
+    emit(
+      PlaybackStatus(
+        song: _current.song,
+        playing: !_current.playing,
+        buffering: false,
+        duration: _current.duration,
+      ),
+    );
+  }
+
+  @override
+  Future<void> next() async => nexts++;
+
+  @override
+  Future<void> previous() async => previouses++;
 }

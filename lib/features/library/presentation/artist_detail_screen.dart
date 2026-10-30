@@ -4,16 +4,17 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/artwork/song_artwork.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_chip.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../player/presentation/play_actions.dart';
 import '../domain/library_models.dart';
 import 'library_providers.dart';
 import 'widgets/album_card.dart';
 import 'widgets/detail_header.dart';
 import 'widgets/detail_scaffold.dart';
 import 'widgets/library_song_tile.dart';
-import 'widgets/playback_soon.dart';
 
 /// An artist's albums and songs. [name] null is "Unknown artist".
 class ArtistDetailScreen extends ConsumerWidget {
@@ -48,8 +49,8 @@ class ArtistDetailScreen extends ConsumerWidget {
               label: albums.length == 1 ? 'Album' : 'Albums',
             ),
         ],
-        onPlay: () => showPlaybackComingSoon(context),
-        onShuffle: () => showPlaybackComingSoon(context),
+        onPlay: () => playSongs(ref, songs, source: PlaySource.artist),
+        onShuffle: () => shuffleSongs(ref, songs, source: PlaySource.artist),
       ),
       extraSlivers: [
         // A row of albums is only useful when there is more than one.
@@ -88,6 +89,8 @@ class ArtistDetailScreen extends ConsumerWidget {
           (context, i) => LibrarySongTile(
             song: songs[i],
             subtitle: songs[i].album ?? unknownAlbum,
+            onTap: () =>
+                playSongs(ref, songs, index: i, source: PlaySource.artist),
           ),
           childCount: songs.length,
         ),

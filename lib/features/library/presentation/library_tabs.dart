@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/artwork/song_artwork.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/theme/hara_typography.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/hara_button.dart';
+import '../../player/presentation/play_actions.dart';
 import '../domain/library_models.dart';
 import '../domain/library_sort.dart';
 import 'library_providers.dart';
@@ -80,7 +82,11 @@ class SongsTab extends ConsumerWidget {
       sliver: (songs) => SliverFixedExtentList(
         itemExtent: HaraSizes.songTileHeight,
         delegate: SliverChildBuilderDelegate(
-          (context, i) => LibrarySongTile(song: songs[i]),
+          (context, i) => LibrarySongTile(
+            song: songs[i],
+            onTap: () =>
+                playSongs(ref, songs, index: i, source: PlaySource.songs),
+          ),
           childCount: songs.length,
         ),
       ),

@@ -2,7 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 import 'package:haraplay/core/database/app_database.dart';
+import 'package:haraplay/core/widgets/song_tile.dart';
+import 'package:haraplay/features/player/presentation/mini_player.dart';
 
+import '../../helpers/fakes.dart';
 import '../../helpers/test_app.dart';
 import '../../helpers/test_database.dart';
 
@@ -166,11 +169,70 @@ void main() {
     expect(find.text('No genres'), findsOneWidget);
   });
 
-  testWidgets('play shows that playback is coming', (tester) async {
-    await openLibrary(tester);
+  testWidgets('album Play queues the album from the first track', (
+    tester,
+  ) async {
+    final player = FakePlayer();
+    await pumpHaraApp(tester, database: await library(), player: player);
+    await tapAndSettle(
+      tester,
+      find.descendant(
+        of: find.byType(HaraBottomNav),
+        matching: find.text('Library'),
+      ),
+    );
     await tapAndSettle(tester, find.text('Albums'));
     await tapAndSettle(tester, find.text('Night Drive'));
     await tapAndSettle(tester, find.text('Play'));
-    expect(find.text('Playback arrives in the next update.'), findsOneWidget);
+
+    final (songs, index, source) = player.played.single;
+    expect(songs.map((s) => s.title), ['Opener', 'Closer']);
+    expect(index, 0);
+    expect(source, PlaySource.album);
+
+    await tapAndSettle(tester, find.text('Shuffle'));
+    final (shuffled, _, shuffleSource) = player.played.last;
+    expect(shuffled.map((s) => s.title), unorderedEquals(['Opener', 'Closer']));
+    expect(shuffleSource, PlaySource.album);
+  });
+
+  testWidgets('tapping a song plays the list from it; mini player appears', (
+    tester,
+  ) async {
+    final player = FakePlayer();
+    await pumpHaraApp(tester, database: await library(), player: player);
+    await tapAndSettle(
+      tester,
+      find.descendant(
+        of: find.byType(HaraBottomNav),
+        matching: find.text('Library'),
+      ),
+    );
+    expect(find.byType(MiniPlayer), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('^Now playing:')), findsNothing);
+
+    await tapAndSettle(tester, find.text('Disc Two Opener'));
+
+    final (songs, index, source) = player.played.single;
+    expect(source, PlaySource.songs);
+    expect(songs, hasLength(5)); // the whole visible list, in its order
+    expect(songs[index].title, 'Disc Two Opener');
+
+    // Mini player shows the song and drives the player.
+    expect(
+      find.bySemanticsLabel('Now playing: Disc Two Opener by Kai Tone'),
+      findsOneWidget,
+    );
+    await tapAndSettle(tester, find.byTooltip('Pause'));
+    expect(player.toggles, 1);
+    expect(find.byTooltip('Play'), findsOneWidget);
+    await tapAndSettle(tester, find.byTooltip('Next'));
+    expect(player.nexts, 1);
+
+    // The playing row is highlighted, and only that one.
+    final tiles = tester.widgetList<SongTile>(find.byType(SongTile));
+    expect(tiles.where((t) => t.selected).map((t) => t.title), [
+      'Disc Two Opener',
+    ]);
   });
 }

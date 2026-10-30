@@ -45,6 +45,10 @@ final _tableCountsProvider = StreamProvider.autoDispose<Map<String, int>>((
       );
 });
 
+final _recentEventsProvider = StreamProvider.autoDispose<List<PlayEventRow>>(
+  (ref) => ref.watch(appDatabaseProvider).playEventsDao.watchRecent(limit: 10),
+);
+
 final _songsProvider =
     StreamProvider.autoDispose<List<(SongRow, SongTagFallbackRow?)>>(
       (ref) => ref.watch(libraryDaoProvider).watchSongsWithFallbacks(),
@@ -101,6 +105,20 @@ class LibraryDatabaseDebugScreen extends ConsumerWidget {
                           '${p.running ? '…' : ' (done)'}',
                 style: HaraTextStyles.of(context).mono,
               ),
+            ),
+          ),
+          const SectionHeader(title: 'Recent play events'),
+          _Padded(
+            Text(
+              [
+                for (final e
+                    in ref.watch(_recentEventsProvider).value ??
+                        const <PlayEventRow>[])
+                  '${e.title} · ${(e.listenedMs / 1000).toStringAsFixed(1)} s'
+                      ' of ${(e.durationMs / 1000).round()} s'
+                      '${e.completed ? ' · completed' : ''} · ${e.source.name}',
+              ].join('\n').ifEmpty('No plays yet'),
+              style: HaraTextStyles.of(context).mono,
             ),
           ),
           SectionHeader(title: 'Songs (${songs.length})'),
@@ -174,4 +192,8 @@ class _Padded extends StatelessWidget {
     ),
     child: child,
   );
+}
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }

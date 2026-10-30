@@ -11,6 +11,7 @@ import 'package:haraplay/features/library/data/library_sync_service.dart';
 import 'package:haraplay/features/library/data/tag_enrichment_service.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 import 'package:haraplay/features/onboarding/presentation/onboarding_controllers.dart';
+import 'package:haraplay/features/player/presentation/player_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -62,6 +63,7 @@ Future<void> pumpHaraApp(
   FakeMediaSource? mediaSource,
   int sdkInt = 34,
   AppDatabase? database,
+  FakePlayer? player,
 }) async {
   final preferences = await createTestPreferences(prefs);
   final db = database ?? createTestDatabase();
@@ -82,6 +84,7 @@ Future<void> pumpHaraApp(
         mediaSourceProvider.overrideWithValue(mediaSource ?? FakeMediaSource()),
         appDatabaseProvider.overrideWithValue(db),
         artworkCacheProvider.overrideWithValue(FakeArtworkCache()),
+        playerProvider.overrideWithValue(player ?? FakePlayer()),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

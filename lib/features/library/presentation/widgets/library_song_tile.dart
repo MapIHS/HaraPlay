@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/artwork/song_artwork.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/theme/hara_tokens.dart';
 import '../../../../core/theme/hara_typography.dart';
 import '../../../../core/widgets/song_tile.dart';
+import '../../../player/presentation/player_providers.dart';
 import '../../domain/library_models.dart';
 
 /// "Artist · Album" with the unknown placeholders.
@@ -14,8 +16,8 @@ String songSubtitle(SongRow song, {bool showAlbum = true}) => [
 ].join(' · ');
 
 /// A [SongTile] for a library song: artwork (or the track number inside an
-/// album), title, artist and album, duration.
-class LibrarySongTile extends StatelessWidget {
+/// album), title, artist and album, duration. Highlighted while playing.
+class LibrarySongTile extends ConsumerWidget {
   const LibrarySongTile({
     super.key,
     required this.song,
@@ -36,8 +38,10 @@ class LibrarySongTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(currentSongIdProvider) == song.id;
     return SongTile(
+      selected: current,
       title: song.title,
       subtitle: subtitle ?? songSubtitle(song, showAlbum: showAlbum),
       duration: Duration(milliseconds: song.durationMs),

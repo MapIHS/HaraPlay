@@ -74,6 +74,14 @@ class ArtworkCache {
     });
   }
 
+  /// The cached JPEG file for [request] (loading it first), or null when
+  /// there is no artwork. Used for the playback notification.
+  Future<File?> fileFor(ArtworkRequest request) async {
+    if (await load(request) == null) return null;
+    final file = File('${(await _dir).path}/${request.cacheKey}.jpg');
+    return await file.exists() ? file : null;
+  }
+
   Future<Uint8List?> _load(ArtworkRequest request) async {
     final key = request.cacheKey;
     final dir = await _dir;
