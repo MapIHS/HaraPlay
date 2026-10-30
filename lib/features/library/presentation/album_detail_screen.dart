@@ -54,8 +54,18 @@ class AlbumDetailScreen extends ConsumerWidget {
               HaraChip(value: '${album!.year}', label: 'Year'),
             ...countChips(songs, noun: 'Track'),
           ],
-          onPlay: () => playSongs(ref, songs, source: PlaySource.album),
-          onShuffle: () => shuffleSongs(ref, songs, source: PlaySource.album),
+          onPlay: () => playSongs(
+            ref,
+            songs,
+            source: PlaySource.album,
+            label: album == null ? null : albumTitle(album),
+          ),
+          onShuffle: () => shuffleSongs(
+            ref,
+            songs,
+            source: PlaySource.album,
+            label: album == null ? null : albumTitle(album),
+          ),
         );
       },
       songList: (songs) {
@@ -83,6 +93,7 @@ class AlbumDetailScreen extends ConsumerWidget {
                   songs,
                   index: songs.indexOf(song),
                   source: PlaySource.album,
+                  label: album == null ? null : albumTitle(album),
                 ),
               ),
             ),

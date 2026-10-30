@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'daos/browse_dao.dart';
 import 'daos/library_dao.dart';
 import 'daos/play_events_dao.dart';
+import 'daos/queue_state_dao.dart';
 import 'tables.dart';
 
 export 'tables.dart';
@@ -22,7 +23,7 @@ part 'app_database.g.dart';
     SongTechInfo,
     SongTagFallbacks,
   ],
-  daos: [LibraryDao, BrowseDao, PlayEventsDao],
+  daos: [LibraryDao, BrowseDao, PlayEventsDao, QueueStateDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);

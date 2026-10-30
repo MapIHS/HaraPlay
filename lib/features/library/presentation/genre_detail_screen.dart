@@ -31,16 +31,23 @@ class GenreDetailScreen extends ConsumerWidget {
         kicker: 'Genre',
         title: name,
         chips: countChips(songs),
-        onPlay: () => playSongs(ref, songs, source: PlaySource.genre),
-        onShuffle: () => shuffleSongs(ref, songs, source: PlaySource.genre),
+        onPlay: () =>
+            playSongs(ref, songs, source: PlaySource.genre, label: name),
+        onShuffle: () =>
+            shuffleSongs(ref, songs, source: PlaySource.genre, label: name),
       ),
       songList: (songs) => SliverFixedExtentList(
         itemExtent: HaraSizes.songTileHeight,
         delegate: SliverChildBuilderDelegate(
           (context, i) => LibrarySongTile(
             song: songs[i],
-            onTap: () =>
-                playSongs(ref, songs, index: i, source: PlaySource.genre),
+            onTap: () => playSongs(
+              ref,
+              songs,
+              index: i,
+              source: PlaySource.genre,
+              label: name,
+            ),
           ),
           childCount: songs.length,
         ),

@@ -32,16 +32,31 @@ class FolderDetailScreen extends ConsumerWidget {
         title: songs.first.folderName,
         subtitle: path,
         chips: countChips(songs),
-        onPlay: () => playSongs(ref, songs, source: PlaySource.folder),
-        onShuffle: () => shuffleSongs(ref, songs, source: PlaySource.folder),
+        onPlay: () => playSongs(
+          ref,
+          songs,
+          source: PlaySource.folder,
+          label: songs.first.folderName,
+        ),
+        onShuffle: () => shuffleSongs(
+          ref,
+          songs,
+          source: PlaySource.folder,
+          label: songs.first.folderName,
+        ),
       ),
       songList: (songs) => SliverFixedExtentList(
         itemExtent: HaraSizes.songTileHeight,
         delegate: SliverChildBuilderDelegate(
           (context, i) => LibrarySongTile(
             song: songs[i],
-            onTap: () =>
-                playSongs(ref, songs, index: i, source: PlaySource.folder),
+            onTap: () => playSongs(
+              ref,
+              songs,
+              index: i,
+              source: PlaySource.folder,
+              label: songs.first.folderName,
+            ),
           ),
           childCount: songs.length,
         ),

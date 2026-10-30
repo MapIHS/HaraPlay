@@ -6,21 +6,33 @@ import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_icon_button.dart';
+import '../domain/queue_song.dart';
 import 'player_providers.dart';
 
-/// The docked player above the bottom navigation. Hidden until something
-/// has been played. (Expanding into Now Playing arrives in M7.)
+/// The docked player card: tap (or drag up, see `PlayerPanel`) to expand,
+/// swipe sideways for the next / previous song.
 class MiniPlayer extends ConsumerWidget {
-  const MiniPlayer({super.key});
+  const MiniPlayer({super.key, required this.status, this.onTap});
 
   static const double artSize = 44;
 
+  /// The card itself, border included.
+  static const double cardHeight = 64;
+
+  /// Space the docked card takes above the bottom navigation: the card, its
+  /// hard shadow and the gap below it.
+  static const double dockHeight =
+      cardHeight + HaraSpacing.sm + HaraShadow.offset;
+
+  /// Horizontal fling speed (logical px/s) that skips a song.
+  static const double swipeVelocity = 350;
+
+  final PlaybackStatus status;
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(playbackStatusProvider).value;
-    final song = status?.song;
-    if (status == null || song == null) return const SizedBox.shrink();
-
+    final song = status.song!;
     final colors = HaraColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final player = ref.read(playerProvider);
@@ -34,83 +46,99 @@ class MiniPlayer extends ConsumerWidget {
       ),
       child: Semantics(
         container: true,
+        button: true,
         label: 'Now playing: ${song.title} by ${song.displayArtist}',
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(HaraRadius.lg),
-            border: Border.all(color: colors.border, width: HaraBorder.regular),
-            boxShadow: [
-              BoxShadow(
-                color: colors.shadow,
-                offset: const Offset(HaraShadow.offset, HaraShadow.offset),
+        hint: 'Opens the player',
+        onTap: onTap,
+        child: GestureDetector(
+          onTap: onTap,
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0;
+            if (velocity <= -swipeVelocity) player.next();
+            if (velocity >= swipeVelocity) player.previous();
+          },
+          child: Container(
+            height: cardHeight,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(HaraRadius.lg),
+              border: Border.all(
+                color: colors.border,
+                width: HaraBorder.regular,
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(
-              HaraRadius.lg - HaraBorder.regular,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _ProgressLine(duration: status.duration),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    HaraSpacing.sm,
-                    HaraSpacing.sm - 3,
-                    HaraSpacing.xs,
-                    HaraSpacing.sm,
-                  ),
-                  child: Row(
-                    children: [
-                      SongArtwork(
-                        songId: song.id,
-                        albumId: song.albumId,
-                        version: song.version,
-                        size: artSize,
-                        borderRadius: HaraRadius.sm,
-                      ),
-                      const SizedBox(width: HaraSpacing.md),
-                      Expanded(
-                        child: ExcludeSemantics(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                song.title,
-                                style: textTheme.titleSmall,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                song.displayArtist,
-                                style: textTheme.bodySmall,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      HaraIconButton(
-                        icon: status.playing ? HaraIcons.pause : HaraIcons.play,
-                        tooltip: status.playing ? 'Pause' : 'Play',
-                        variant: HaraIconButtonVariant.primary,
-                        size: 44,
-                        iconSize: HaraSizes.iconSmall,
-                        onPressed: player.togglePlay,
-                      ),
-                      HaraIconButton(
-                        icon: HaraIcons.skipForward,
-                        tooltip: 'Next',
-                        onPressed: player.next,
-                      ),
-                    ],
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.shadow,
+                  offset: const Offset(HaraShadow.offset, HaraShadow.offset),
                 ),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                HaraRadius.lg - HaraBorder.regular,
+              ),
+              child: Column(
+                children: [
+                  _ProgressLine(duration: status.duration),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: HaraSpacing.sm,
+                        right: HaraSpacing.xs,
+                      ),
+                      child: Row(
+                        children: [
+                          SongArtwork(
+                            songId: song.id,
+                            albumId: song.albumId,
+                            version: song.version,
+                            size: artSize,
+                            borderRadius: HaraRadius.sm,
+                          ),
+                          const SizedBox(width: HaraSpacing.md),
+                          Expanded(
+                            child: ExcludeSemantics(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    song.title,
+                                    style: textTheme.titleSmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    song.displayArtist,
+                                    style: textTheme.bodySmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          HaraIconButton(
+                            icon: status.playing
+                                ? HaraIcons.pause
+                                : HaraIcons.play,
+                            tooltip: status.playing ? 'Pause' : 'Play',
+                            variant: HaraIconButtonVariant.primary,
+                            size: 44,
+                            iconSize: HaraSizes.iconSmall,
+                            onPressed: player.togglePlay,
+                          ),
+                          HaraIconButton(
+                            icon: HaraIcons.skipForward,
+                            tooltip: 'Next',
+                            onPressed: player.next,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

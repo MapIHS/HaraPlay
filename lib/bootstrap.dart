@@ -39,6 +39,7 @@ Future<void> bootstrap() async {
       player: AudioPlayer(),
       recorder: PlayEventRecorder(database.playEventsDao),
       artwork: artwork,
+      queueStore: database.queueStateDao,
     ),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.mmi.haraplay.playback',
@@ -69,6 +70,8 @@ Future<void> bootstrap() async {
   // its own first sync; failures are kept in the controller's state.
   final onboarded = OnboardingRepository(preferences).readCompleted();
   if (access == MediaAccess.granted && onboarded) {
+    // Last session's queue comes back paused, at the saved position.
+    handler.restore().ignore();
     container.read(librarySyncControllerProvider.notifier).sync().ignore();
   }
 }

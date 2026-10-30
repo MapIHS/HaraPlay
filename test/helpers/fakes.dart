@@ -122,6 +122,9 @@ class FakePlayer implements Player {
   PlaybackStatus _current = PlaybackStatus.idle;
 
   final played = <(List<QueueSong>, int, PlaySource)>[];
+  final labels = <String?>[];
+  final shuffleArgs = <bool?>[];
+  final seeks = <Duration>[];
   int toggles = 0;
   int nexts = 0;
   int previouses = 0;
@@ -150,14 +153,24 @@ class FakePlayer implements Player {
     List<QueueSong> songs, {
     int startIndex = 0,
     required PlaySource source,
+    String? sourceLabel,
+    bool? shuffle,
   }) async {
     played.add((songs, startIndex, source));
+    labels.add(sourceLabel);
+    shuffleArgs.add(shuffle);
     emit(
       PlaybackStatus(
         song: songs[startIndex],
         playing: true,
         buffering: false,
         duration: songs[startIndex].duration,
+        shuffle: shuffle ?? _current.shuffle,
+        repeat: _current.repeat,
+        source: source,
+        sourceLabel: sourceLabel,
+        queueLength: songs.length,
+        queueIndex: startIndex,
       ),
     );
   }
@@ -165,14 +178,7 @@ class FakePlayer implements Player {
   @override
   Future<void> togglePlay() async {
     toggles++;
-    emit(
-      PlaybackStatus(
-        song: _current.song,
-        playing: !_current.playing,
-        buffering: false,
-        duration: _current.duration,
-      ),
-    );
+    emit(_current.copyWith(playing: !_current.playing));
   }
 
   @override
@@ -180,4 +186,15 @@ class FakePlayer implements Player {
 
   @override
   Future<void> previous() async => previouses++;
+
+  @override
+  Future<void> seek(Duration position) async => seeks.add(position);
+
+  @override
+  Future<void> setShuffle(bool enabled) async =>
+      emit(_current.copyWith(shuffle: enabled));
+
+  @override
+  Future<void> setRepeat(RepeatSetting mode) async =>
+      emit(_current.copyWith(repeat: mode));
 }

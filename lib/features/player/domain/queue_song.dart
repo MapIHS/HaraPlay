@@ -56,6 +56,12 @@ class PlaybackStatus {
     required this.playing,
     required this.buffering,
     required this.duration,
+    this.shuffle = false,
+    this.repeat = RepeatSetting.off,
+    this.source = PlaySource.songs,
+    this.sourceLabel,
+    this.queueLength = 0,
+    this.queueIndex = 0,
   });
 
   static const idle = PlaybackStatus(
@@ -69,4 +75,29 @@ class PlaybackStatus {
   final bool playing;
   final bool buffering;
   final Duration duration;
+  final bool shuffle;
+  final RepeatSetting repeat;
+
+  /// Where the queue came from, e.g. [PlaySource.album] and "Night Drive".
+  final PlaySource source;
+  final String? sourceLabel;
+  final int queueLength;
+  final int queueIndex;
+
+  PlaybackStatus copyWith({
+    bool? playing,
+    bool? shuffle,
+    RepeatSetting? repeat,
+  }) => PlaybackStatus(
+    song: song,
+    playing: playing ?? this.playing,
+    buffering: buffering,
+    duration: duration,
+    shuffle: shuffle ?? this.shuffle,
+    repeat: repeat ?? this.repeat,
+    source: source,
+    sourceLabel: sourceLabel,
+    queueLength: queueLength,
+    queueIndex: queueIndex,
+  );
 }

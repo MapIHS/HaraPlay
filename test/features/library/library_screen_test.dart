@@ -190,10 +190,14 @@ void main() {
     expect(index, 0);
     expect(source, PlaySource.album);
 
+    expect(player.labels.single, 'Night Drive');
+    expect(player.shuffleArgs.single, isNull); // keeps the shuffle setting
+
     await tapAndSettle(tester, find.text('Shuffle'));
     final (shuffled, _, shuffleSource) = player.played.last;
-    expect(shuffled.map((s) => s.title), unorderedEquals(['Opener', 'Closer']));
+    expect(shuffled.map((s) => s.title), ['Opener', 'Closer']);
     expect(shuffleSource, PlaySource.album);
+    expect(player.shuffleArgs.last, isTrue); // turns shuffle mode on
   });
 
   testWidgets('tapping a song plays the list from it; mini player appears', (
@@ -208,8 +212,7 @@ void main() {
         matching: find.text('Library'),
       ),
     );
-    expect(find.byType(MiniPlayer), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('^Now playing:')), findsNothing);
+    expect(find.byType(MiniPlayer), findsNothing);
 
     await tapAndSettle(tester, find.text('Disc Two Opener'));
 

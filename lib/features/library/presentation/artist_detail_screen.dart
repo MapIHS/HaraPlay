@@ -49,8 +49,18 @@ class ArtistDetailScreen extends ConsumerWidget {
               label: albums.length == 1 ? 'Album' : 'Albums',
             ),
         ],
-        onPlay: () => playSongs(ref, songs, source: PlaySource.artist),
-        onShuffle: () => shuffleSongs(ref, songs, source: PlaySource.artist),
+        onPlay: () => playSongs(
+          ref,
+          songs,
+          source: PlaySource.artist,
+          label: name ?? unknownArtist,
+        ),
+        onShuffle: () => shuffleSongs(
+          ref,
+          songs,
+          source: PlaySource.artist,
+          label: name ?? unknownArtist,
+        ),
       ),
       extraSlivers: [
         // A row of albums is only useful when there is more than one.
@@ -89,8 +99,13 @@ class ArtistDetailScreen extends ConsumerWidget {
           (context, i) => LibrarySongTile(
             song: songs[i],
             subtitle: songs[i].album ?? unknownAlbum,
-            onTap: () =>
-                playSongs(ref, songs, index: i, source: PlaySource.artist),
+            onTap: () => playSongs(
+              ref,
+              songs,
+              index: i,
+              source: PlaySource.artist,
+              label: name ?? unknownArtist,
+            ),
           ),
           childCount: songs.length,
         ),
