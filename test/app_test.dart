@@ -1,25 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:haraplay/app/app.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
-import 'package:haraplay/core/storage/preferences.dart';
 
 import 'helpers/test_app.dart';
-
-Future<void> pumpApp(
-  WidgetTester tester, [
-  Map<String, Object> prefs = const {},
-]) async {
-  final preferences = await createTestPreferences(prefs);
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
-      child: const HaraPlayApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
 
 Finder navTab(String label) =>
     find.descendant(of: find.byType(HaraBottomNav), matching: find.text(label));
@@ -37,7 +20,10 @@ Future<bool> pressBack(WidgetTester tester) async {
 
 void main() {
   testWidgets('starts on Home in the saved theme mode', (tester) async {
-    await pumpApp(tester, {'settings.themeMode': 'dark'});
+    await pumpHaraApp(
+      tester,
+      prefs: {...onboardedPrefs, 'settings.themeMode': 'dark'},
+    );
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
@@ -48,7 +34,7 @@ void main() {
   });
 
   testWidgets('bottom nav switches between the four tabs', (tester) async {
-    await pumpApp(tester);
+    await pumpHaraApp(tester);
 
     await tapAndSettle(tester, navTab('Library'));
     expect(find.text('Your library'), findsOneWidget);
@@ -61,7 +47,7 @@ void main() {
   });
 
   testWidgets('each tab keeps its own back stack', (tester) async {
-    await pumpApp(tester);
+    await pumpHaraApp(tester);
 
     await tapAndSettle(tester, navTab('Library'));
     await tapAndSettle(tester, find.text('Open sample album'));
@@ -81,7 +67,7 @@ void main() {
   testWidgets('Android back pops the tab, then returns Home, then exits', (
     tester,
   ) async {
-    await pumpApp(tester);
+    await pumpHaraApp(tester);
     await tapAndSettle(tester, navTab('Playlists'));
     await tapAndSettle(tester, find.text('Open Liked songs'));
     expect(find.text('No liked songs yet'), findsOneWidget);
@@ -99,7 +85,7 @@ void main() {
   testWidgets('Settings opens above the shell and changes the theme', (
     tester,
   ) async {
-    await pumpApp(tester);
+    await pumpHaraApp(tester);
     await tapAndSettle(tester, find.byTooltip('Settings'));
 
     expect(find.text('Appearance'), findsOneWidget);
@@ -117,14 +103,14 @@ void main() {
   testWidgets('design gallery is reachable from Settings in debug', (
     tester,
   ) async {
-    await pumpApp(tester);
+    await pumpHaraApp(tester);
     await tapAndSettle(tester, find.byTooltip('Settings'));
     await tapAndSettle(tester, find.text('Design gallery'));
     expect(find.text('Colours'), findsOneWidget);
   });
 
   testWidgets('licenses page opens from Settings', (tester) async {
-    await pumpApp(tester);
+    await pumpHaraApp(tester);
     await tapAndSettle(tester, find.byTooltip('Settings'));
     await tapAndSettle(tester, find.text('Open-source licenses'));
     expect(find.textContaining('The HaraPlay Authors'), findsOneWidget);

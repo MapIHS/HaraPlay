@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.mmi.haraplay"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android 14.x requires compiling against API 37.
+    // targetSdk (runtime behaviour) stays at the Flutter default.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

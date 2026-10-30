@@ -49,6 +49,12 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'Debug builds only',
               onTap: () => context.push(AppRoutes.designGallery),
             ),
+            SettingsTile(
+              icon: HaraIcons.folder,
+              title: 'MediaStore inspector',
+              subtitle: 'Every song and tag the library scan reads',
+              onTap: () => context.push(AppRoutes.mediaStoreDebug),
+            ),
           ],
         ],
       ),

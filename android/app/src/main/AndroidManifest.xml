@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Library access: READ_MEDIA_AUDIO on API 33+, storage on API 24-32. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Playback notification (API 33+). Requested once; denial is non-blocking. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- No INTERNET permission: HaraPlay is fully offline. -->
+
     <application
         android:label="HaraPlay"
+        android:requestLegacyExternalStorage="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
