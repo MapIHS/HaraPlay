@@ -40,9 +40,12 @@ class TagEnrichmentService {
   bool _disposed = false;
 
   /// Reads all current candidates. Calls while a pass is running join it.
-  Future<void> run() => _running ??= _run().whenComplete(() => _running = null);
+  Future<void> run() => _running ??= _run().whenComplete(() {
+    _running = null;
+  });
 
   Future<void> _run() async {
+    final watch = Stopwatch()..start();
     final candidates = await _dao.enrichmentCandidates();
     var done = 0;
     _report(done, candidates.length, running: candidates.isNotEmpty);
@@ -56,6 +59,12 @@ class TagEnrichmentService {
       ], readAt: _clock());
       done += batch.length;
       _report(done, candidates.length, running: done < candidates.length);
+    }
+    if (!kReleaseMode && candidates.isNotEmpty) {
+      debugPrint(
+        'HaraPlay tag pass: ${candidates.length} files in '
+        '${watch.elapsedMilliseconds} ms',
+      );
     }
   }
 

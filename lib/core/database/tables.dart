@@ -55,6 +55,10 @@ class Songs extends Table {
   /// Folded title, artist, album and album artist for search.
   TextColumn get searchText => text()();
 
+  /// Artist and title were guessed from the file name (schema v2).
+  BoolColumn get nameFromFilename =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

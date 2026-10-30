@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
 import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
@@ -92,5 +94,19 @@ class FakeFileTagReader extends FileTagReader {
             ? const FileTagsResult.failed()
             : FileTagsResult.read(tagsByPath[path]!),
     ];
+  }
+}
+
+/// Artwork cache that answers "no artwork" at once, without file IO.
+class FakeArtworkCache extends ArtworkCache {
+  FakeArtworkCache()
+    : super(FakeMediaSource(), () async => Directory.systemTemp);
+
+  final requests = <ArtworkRequest>[];
+
+  @override
+  Future<Uint8List?> load(ArtworkRequest request) async {
+    requests.add(request);
+    return null;
   }
 }

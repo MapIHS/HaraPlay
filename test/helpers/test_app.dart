@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/app.dart';
+import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/media_store_channel.dart';
 import 'package:haraplay/core/storage/preferences.dart';
@@ -80,6 +81,7 @@ Future<void> pumpHaraApp(
         ),
         mediaSourceProvider.overrideWithValue(mediaSource ?? FakeMediaSource()),
         appDatabaseProvider.overrideWithValue(db),
+        artworkCacheProvider.overrideWithValue(FakeArtworkCache()),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

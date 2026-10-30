@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../features/library/data/filename_tags.dart';
 import '../../../features/library/data/tag_merge.dart';
 import '../../platform/media_store_song.dart';
 import '../../utils/text_normalize.dart';
@@ -214,7 +215,12 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
         ),
       );
       if (result.failed) continue;
-      final merged = withTags(current, mergeTags(tagsOfRow(current), file));
+      // Undo an earlier file-name guess first, so real file tags win.
+      final mediaStore = mediaStoreTagsOfRow(current);
+      final merged = withTags(
+        current,
+        mergeTagsForPath(mediaStore, file, current.path),
+      );
       if (merged != current) {
         await update(songs).replace(merged.toCompanion(false));
       }
@@ -273,9 +279,10 @@ SongRow songRowFrom(MediaStoreSong song, {SongTags? fileTags}) {
     discNumber: song.discNumber,
     year: song.year,
   );
-  final tags = fileTags == null
+  final merged = fileTags == null
       ? mediaStoreTags
-      : mergeTags(mediaStoreTags, fileTags);
+      : mergeTagsForPath(mediaStoreTags, fileTags, song.path);
+  final (tags, fromFilename) = withFilenameTags(merged, song.path);
   return SongRow(
     id: song.id,
     title: tags.title ?? song.title,
@@ -297,6 +304,7 @@ SongRow songRowFrom(MediaStoreSong song, {SongTags? fileTags}) {
     dateAdded: song.dateAdded.millisecondsSinceEpoch,
     dateModified: song.dateModified.millisecondsSinceEpoch,
     searchText: _searchText(tags, song.title),
+    nameFromFilename: fromFilename,
   );
 }
 
@@ -322,18 +330,38 @@ SongTags tagsOfFallback(SongTagFallbackRow row) => SongTags(
   year: row.year,
 );
 
-/// [row] with its tag fields (and search text) replaced by [tags].
-SongRow withTags(SongRow row, SongTags tags) => row.copyWith(
-  title: tags.title ?? row.title,
-  artist: Value(tags.artist),
-  album: Value(tags.album),
-  albumArtist: Value(tags.albumArtist),
-  genre: Value(tags.genre),
-  trackNumber: Value(tags.trackNumber),
-  discNumber: Value(tags.discNumber),
-  year: Value(tags.year),
-  searchText: _searchText(tags, row.title),
-);
+/// [row]'s tags as MediaStore reported them, i.e. without a file-name guess.
+SongTags mediaStoreTagsOfRow(SongRow row) {
+  final tags = tagsOfRow(row);
+  if (!row.nameFromFilename) return tags;
+  return SongTags(
+    title: fileStem(row.path),
+    album: tags.album,
+    albumArtist: tags.albumArtist,
+    genre: tags.genre,
+    trackNumber: tags.trackNumber,
+    discNumber: tags.discNumber,
+    year: tags.year,
+  );
+}
+
+/// [row] with its tag fields replaced by [tags], then the file-name guess
+/// applied if still needed, and the search text rebuilt.
+SongRow withTags(SongRow row, SongTags merged) {
+  final (tags, fromFilename) = withFilenameTags(merged, row.path);
+  return row.copyWith(
+    nameFromFilename: fromFilename,
+    title: tags.title ?? row.title,
+    artist: Value(tags.artist),
+    album: Value(tags.album),
+    albumArtist: Value(tags.albumArtist),
+    genre: Value(tags.genre),
+    trackNumber: Value(tags.trackNumber),
+    discNumber: Value(tags.discNumber),
+    year: Value(tags.year),
+    searchText: _searchText(tags, row.title),
+  );
+}
 
 String _searchText(SongTags tags, String fallbackTitle) => buildSearchText([
   tags.title ?? fallbackTitle,

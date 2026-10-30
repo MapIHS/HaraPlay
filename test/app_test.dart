@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 
 import 'helpers/test_app.dart';
+import 'helpers/test_database.dart';
 
 Finder navTab(String label) =>
     find.descendant(of: find.byType(HaraBottomNav), matching: find.text(label));
@@ -37,7 +38,7 @@ void main() {
     await pumpHaraApp(tester);
 
     await tapAndSettle(tester, navTab('Library'));
-    expect(find.text('Your library'), findsOneWidget);
+    expect(find.text('No music yet'), findsOneWidget);
     await tapAndSettle(tester, navTab('Search'));
     expect(find.text('Search your music'), findsOneWidget);
     await tapAndSettle(tester, navTab('Playlists'));
@@ -47,21 +48,26 @@ void main() {
   });
 
   testWidgets('each tab keeps its own back stack', (tester) async {
-    await pumpHaraApp(tester);
+    final db = createTestDatabase();
+    await db.libraryDao.applyScan([
+      mediaSong(1, title: 'Night Drive', album: 'Midnight', albumId: 7),
+    ]);
+    await pumpHaraApp(tester, database: db);
 
     await tapAndSettle(tester, navTab('Library'));
-    await tapAndSettle(tester, find.text('Open sample album'));
-    expect(find.text('Album #1'), findsOneWidget);
+    await tapAndSettle(tester, find.text('Albums'));
+    await tapAndSettle(tester, find.text('Midnight'));
+    expect(find.text('ALBUM'), findsOneWidget);
 
     await tapAndSettle(tester, navTab('Home'));
-    expect(find.text('Album #1'), findsNothing);
+    expect(find.text('ALBUM'), findsNothing);
     await tapAndSettle(tester, navTab('Library'));
-    expect(find.text('Album #1'), findsOneWidget);
+    expect(find.text('ALBUM'), findsOneWidget);
 
     // Re-selecting the current tab returns to its root.
     await tapAndSettle(tester, navTab('Library'));
-    expect(find.text('Album #1'), findsNothing);
-    expect(find.text('Your library'), findsOneWidget);
+    expect(find.text('ALBUM'), findsNothing);
+    expect(find.text('1 album'), findsOneWidget);
   });
 
   testWidgets('Android back pops the tab, then returns Home, then exits', (

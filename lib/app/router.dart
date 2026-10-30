@@ -8,7 +8,10 @@ import '../features/design_gallery/presentation/library_database_debug_screen.da
 import '../features/design_gallery/presentation/media_store_debug_screen.dart';
 import '../features/favorites/presentation/liked_songs_screen.dart';
 import '../features/home/presentation/home_screen.dart';
-import '../features/library/presentation/album_screen.dart';
+import '../features/library/presentation/album_detail_screen.dart';
+import '../features/library/presentation/artist_detail_screen.dart';
+import '../features/library/presentation/folder_detail_screen.dart';
+import '../features/library/presentation/genre_detail_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/onboarding/data/media_permission_service.dart';
 import '../features/onboarding/presentation/onboarding_controllers.dart';
@@ -33,6 +36,18 @@ abstract final class AppRoutes {
   static const likedSongs = '/playlists/favorites';
 
   static String album(int albumId) => '/library/album/$albumId';
+
+  /// Null opens "Unknown artist".
+  static String artist(String? name) => Uri(
+    path: '/library/artist',
+    queryParameters: name == null ? null : {'name': name},
+  ).toString();
+
+  static String folder(String path) =>
+      Uri(path: '/library/folder', queryParameters: {'path': path}).toString();
+
+  static String genre(String name) =>
+      Uri(path: '/library/genre', queryParameters: {'name': name}).toString();
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -111,8 +126,26 @@ GoRouter createRouter({
                 routes: [
                   GoRoute(
                     path: 'album/:albumId',
-                    builder: (context, state) => AlbumScreen(
+                    builder: (context, state) => AlbumDetailScreen(
                       albumId: int.parse(state.pathParameters['albumId']!),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'artist',
+                    builder: (context, state) => ArtistDetailScreen(
+                      name: state.uri.queryParameters['name'],
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'folder',
+                    builder: (context, state) => FolderDetailScreen(
+                      path: state.uri.queryParameters['path'] ?? '',
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'genre',
+                    builder: (context, state) => GenreDetailScreen(
+                      name: state.uri.queryParameters['name'] ?? '',
                     ),
                   ),
                 ],

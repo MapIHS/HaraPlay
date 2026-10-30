@@ -12,7 +12,7 @@ import '../theme/hara_tokens.dart';
 class ArtworkImage extends StatelessWidget {
   const ArtworkImage({
     super.key,
-    required this.size,
+    this.size,
     this.image,
     this.seed = 0,
     this.borderRadius = HaraRadius.md,
@@ -20,7 +20,8 @@ class ArtworkImage extends StatelessWidget {
     this.shadow = false,
   });
 
-  final double size;
+  /// Edge length; null fills the available width as a square.
+  final double? size;
   final ImageProvider? image;
   final int seed;
   final double borderRadius;
@@ -31,6 +32,14 @@ class ArtworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fixed = size;
+    if (fixed != null) return _build(context, fixed);
+    return LayoutBuilder(
+      builder: (context, constraints) => _build(context, constraints.maxWidth),
+    );
+  }
+
+  Widget _build(BuildContext context, double size) {
     final colors = HaraColors.of(context);
     final radius = BorderRadius.circular(borderRadius);
     final innerRadius = BorderRadius.circular(

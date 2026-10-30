@@ -215,6 +215,21 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nameFromFilenameMeta = const VerificationMeta(
+    'nameFromFilename',
+  );
+  @override
+  late final GeneratedColumn<bool> nameFromFilename = GeneratedColumn<bool>(
+    'name_from_filename',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("name_from_filename" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -237,6 +252,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
     dateAdded,
     dateModified,
     searchText,
+    nameFromFilename,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -394,6 +410,15 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
     } else if (isInserting) {
       context.missing(_searchTextMeta);
     }
+    if (data.containsKey('name_from_filename')) {
+      context.handle(
+        _nameFromFilenameMeta,
+        nameFromFilename.isAcceptableOrUnknown(
+          data['name_from_filename']!,
+          _nameFromFilenameMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -483,6 +508,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
         DriftSqlType.string,
         data['${effectivePrefix}search_text'],
       )!,
+      nameFromFilename: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}name_from_filename'],
+      )!,
     );
   }
 
@@ -518,6 +547,9 @@ class SongRow extends DataClass implements Insertable<SongRow> {
 
   /// Folded title, artist, album and album artist for search.
   final String searchText;
+
+  /// Artist and title were guessed from the file name (schema v2).
+  final bool nameFromFilename;
   const SongRow({
     required this.id,
     required this.title,
@@ -539,6 +571,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     required this.dateAdded,
     required this.dateModified,
     required this.searchText,
+    required this.nameFromFilename,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -583,6 +616,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     map['date_added'] = Variable<int>(dateAdded);
     map['date_modified'] = Variable<int>(dateModified);
     map['search_text'] = Variable<String>(searchText);
+    map['name_from_filename'] = Variable<bool>(nameFromFilename);
     return map;
   }
 
@@ -626,6 +660,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       dateAdded: Value(dateAdded),
       dateModified: Value(dateModified),
       searchText: Value(searchText),
+      nameFromFilename: Value(nameFromFilename),
     );
   }
 
@@ -655,6 +690,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       dateAdded: serializer.fromJson<int>(json['dateAdded']),
       dateModified: serializer.fromJson<int>(json['dateModified']),
       searchText: serializer.fromJson<String>(json['searchText']),
+      nameFromFilename: serializer.fromJson<bool>(json['nameFromFilename']),
     );
   }
   @override
@@ -681,6 +717,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       'dateAdded': serializer.toJson<int>(dateAdded),
       'dateModified': serializer.toJson<int>(dateModified),
       'searchText': serializer.toJson<String>(searchText),
+      'nameFromFilename': serializer.toJson<bool>(nameFromFilename),
     };
   }
 
@@ -705,6 +742,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     int? dateAdded,
     int? dateModified,
     String? searchText,
+    bool? nameFromFilename,
   }) => SongRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -726,6 +764,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     dateAdded: dateAdded ?? this.dateAdded,
     dateModified: dateModified ?? this.dateModified,
     searchText: searchText ?? this.searchText,
+    nameFromFilename: nameFromFilename ?? this.nameFromFilename,
   );
   SongRow copyWithCompanion(SongsCompanion data) {
     return SongRow(
@@ -765,6 +804,9 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       searchText: data.searchText.present
           ? data.searchText.value
           : this.searchText,
+      nameFromFilename: data.nameFromFilename.present
+          ? data.nameFromFilename.value
+          : this.nameFromFilename,
     );
   }
 
@@ -790,13 +832,14 @@ class SongRow extends DataClass implements Insertable<SongRow> {
           ..write('folderName: $folderName, ')
           ..write('dateAdded: $dateAdded, ')
           ..write('dateModified: $dateModified, ')
-          ..write('searchText: $searchText')
+          ..write('searchText: $searchText, ')
+          ..write('nameFromFilename: $nameFromFilename')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     artist,
@@ -817,7 +860,8 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     dateAdded,
     dateModified,
     searchText,
-  );
+    nameFromFilename,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -841,7 +885,8 @@ class SongRow extends DataClass implements Insertable<SongRow> {
           other.folderName == this.folderName &&
           other.dateAdded == this.dateAdded &&
           other.dateModified == this.dateModified &&
-          other.searchText == this.searchText);
+          other.searchText == this.searchText &&
+          other.nameFromFilename == this.nameFromFilename);
 }
 
 class SongsCompanion extends UpdateCompanion<SongRow> {
@@ -865,6 +910,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
   final Value<int> dateAdded;
   final Value<int> dateModified;
   final Value<String> searchText;
+  final Value<bool> nameFromFilename;
   const SongsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -886,6 +932,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     this.dateAdded = const Value.absent(),
     this.dateModified = const Value.absent(),
     this.searchText = const Value.absent(),
+    this.nameFromFilename = const Value.absent(),
   });
   SongsCompanion.insert({
     this.id = const Value.absent(),
@@ -908,6 +955,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     required int dateAdded,
     required int dateModified,
     required String searchText,
+    this.nameFromFilename = const Value.absent(),
   }) : title = Value(title),
        durationMs = Value(durationMs),
        sizeBytes = Value(sizeBytes),
@@ -938,6 +986,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     Expression<int>? dateAdded,
     Expression<int>? dateModified,
     Expression<String>? searchText,
+    Expression<bool>? nameFromFilename,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -960,6 +1009,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
       if (dateAdded != null) 'date_added': dateAdded,
       if (dateModified != null) 'date_modified': dateModified,
       if (searchText != null) 'search_text': searchText,
+      if (nameFromFilename != null) 'name_from_filename': nameFromFilename,
     });
   }
 
@@ -984,6 +1034,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     Value<int>? dateAdded,
     Value<int>? dateModified,
     Value<String>? searchText,
+    Value<bool>? nameFromFilename,
   }) {
     return SongsCompanion(
       id: id ?? this.id,
@@ -1006,6 +1057,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
       dateAdded: dateAdded ?? this.dateAdded,
       dateModified: dateModified ?? this.dateModified,
       searchText: searchText ?? this.searchText,
+      nameFromFilename: nameFromFilename ?? this.nameFromFilename,
     );
   }
 
@@ -1072,6 +1124,9 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     if (searchText.present) {
       map['search_text'] = Variable<String>(searchText.value);
     }
+    if (nameFromFilename.present) {
+      map['name_from_filename'] = Variable<bool>(nameFromFilename.value);
+    }
     return map;
   }
 
@@ -1097,7 +1152,8 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
           ..write('folderName: $folderName, ')
           ..write('dateAdded: $dateAdded, ')
           ..write('dateModified: $dateModified, ')
-          ..write('searchText: $searchText')
+          ..write('searchText: $searchText, ')
+          ..write('nameFromFilename: $nameFromFilename')
           ..write(')'))
         .toString();
   }
@@ -4585,6 +4641,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE INDEX play_events_song_id ON play_events (song_id)',
   );
   late final LibraryDao libraryDao = LibraryDao(this as AppDatabase);
+  late final BrowseDao browseDao = BrowseDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4725,6 +4782,7 @@ typedef $$SongsTableCreateCompanionBuilder = SongsCompanion Function({
   required int dateAdded,
   required int dateModified,
   required String searchText,
+  Value<bool> nameFromFilename,
 });
 typedef $$SongsTableUpdateCompanionBuilder = SongsCompanion Function({
   Value<int> id,
@@ -4747,6 +4805,7 @@ typedef $$SongsTableUpdateCompanionBuilder = SongsCompanion Function({
   Value<int> dateAdded,
   Value<int> dateModified,
   Value<String> searchText,
+  Value<bool> nameFromFilename,
 });
 
 final class $$SongsTableReferences
@@ -4971,6 +5030,11 @@ class $$SongsTableFilterComposer extends Composer<_$AppDatabase, $SongsTable> {
 
   ColumnFilters<String> get searchText => $composableBuilder(
     column: $table.searchText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get nameFromFilename => $composableBuilder(
+    column: $table.nameFromFilename,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5233,6 +5297,11 @@ class $$SongsTableOrderingComposer
     column: $table.searchText,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get nameFromFilename => $composableBuilder(
+    column: $table.nameFromFilename,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SongsTableAnnotationComposer
@@ -5317,6 +5386,11 @@ class $$SongsTableAnnotationComposer
 
   GeneratedColumn<String> get searchText => $composableBuilder(
     column: $table.searchText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get nameFromFilename => $composableBuilder(
+    column: $table.nameFromFilename,
     builder: (column) => column,
   );
 
@@ -5526,6 +5600,7 @@ class $$SongsTableTableManager
                 Value<int> dateAdded = const Value.absent(),
                 Value<int> dateModified = const Value.absent(),
                 Value<String> searchText = const Value.absent(),
+                Value<bool> nameFromFilename = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
                 title: title,
@@ -5547,6 +5622,7 @@ class $$SongsTableTableManager
                 dateAdded: dateAdded,
                 dateModified: dateModified,
                 searchText: searchText,
+                nameFromFilename: nameFromFilename,
               ),
           createCompanionCallback:
               ({
@@ -5570,6 +5646,7 @@ class $$SongsTableTableManager
                 required int dateAdded,
                 required int dateModified,
                 required String searchText,
+                Value<bool> nameFromFilename = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
                 title: title,
@@ -5591,6 +5668,7 @@ class $$SongsTableTableManager
                 dateAdded: dateAdded,
                 dateModified: dateModified,
                 searchText: searchText,
+                nameFromFilename: nameFromFilename,
               ),
           withReferenceMapper: (p0) => p0
               .map(

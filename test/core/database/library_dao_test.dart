@@ -277,6 +277,60 @@ void main() {
     });
   });
 
+  group('file-name tags', () {
+    const path = '/m/Mono Lisa - Night Drive.mp3';
+
+    test('untagged songs get artist and title from the file name', () async {
+      await dao.applyScan([
+        mediaSong(1, path: path, title: 'Mono Lisa - Night Drive'),
+      ]);
+      final song = (await allSongs()).single;
+      expect(song.artist, 'Mono Lisa');
+      expect(song.title, 'Night Drive');
+      expect(song.nameFromFilename, isTrue);
+      expect(song.searchText, 'night drive mono lisa');
+    });
+
+    test('a real artist tag found in the file replaces the guess', () async {
+      await dao.applyScan([
+        mediaSong(1, path: path, title: 'Mono Lisa - Night Drive'),
+      ]);
+      final candidate = (await dao.enrichmentCandidates()).single;
+      await dao.saveFileTags([
+        (
+          candidate,
+          const FileTagsResult.read(
+            SongTags(title: 'Night Drive', artist: 'Real Artist'),
+          ),
+        ),
+      ], readAt: DateTime.utc(2026));
+
+      final song = (await allSongs()).single;
+      expect(song.artist, 'Real Artist');
+      expect(song.title, 'Night Drive');
+      expect(song.nameFromFilename, isFalse);
+    });
+
+    test('the guess is kept when the file has no tags either', () async {
+      await dao.applyScan([
+        mediaSong(1, path: path, title: 'Mono Lisa - Night Drive'),
+      ]);
+      final candidate = (await dao.enrichmentCandidates()).single;
+      await dao.saveFileTags([
+        (candidate, const FileTagsResult.read(SongTags())),
+      ], readAt: DateTime.utc(2026));
+
+      final song = (await allSongs()).single;
+      expect(song.artist, 'Mono Lisa');
+      expect(song.nameFromFilename, isTrue);
+      // A rescan reproduces the same row.
+      final result = await dao.applyScan([
+        mediaSong(1, path: path, title: 'Mono Lisa - Night Drive'),
+      ]);
+      expect(result.changedAnything, isFalse);
+    });
+  });
+
   test('counts respect the minimum length', () async {
     await dao.applyScan([
       mediaSong(1, durationMs: 10000, path: '/a/x.mp3'),

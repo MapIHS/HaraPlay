@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/database/daos/library_dao.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_sheet.dart';
 import '../../library/presentation/library_providers.dart';
+import '../../library/presentation/rescan.dart';
 import '../data/settings_repository.dart';
 import 'min_song_length_controller.dart';
 import 'settings_tile.dart';
@@ -14,22 +14,6 @@ import 'settings_tile.dart';
 /// Settings → Library: rescan and the minimum song length.
 class LibrarySettings extends ConsumerWidget {
   const LibrarySettings({super.key});
-
-  Future<void> _rescan(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    String message;
-    try {
-      final result = await ref
-          .read(librarySyncControllerProvider.notifier)
-          .sync();
-      message = describeSync(result);
-    } on Object {
-      message = "Couldn't scan your music. Please try again.";
-    }
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,7 +25,7 @@ class LibrarySettings extends ConsumerWidget {
           icon: HaraIcons.refreshCw,
           title: syncing ? 'Scanning…' : 'Rescan library',
           subtitle: 'Look for music added or removed on this phone',
-          onTap: syncing ? null : () => _rescan(context, ref),
+          onTap: syncing ? null : () => rescanWithFeedback(context, ref),
         ),
         SettingsTile(
           icon: HaraIcons.timer,
@@ -59,23 +43,6 @@ class LibrarySettings extends ConsumerWidget {
     );
   }
 }
-
-/// A short, human summary of a sync for a snackbar.
-String describeSync(SyncResult result) {
-  if (!result.changedAnything) {
-    return 'Library is up to date: ${_songs(result.total)}.';
-  }
-  final parts = [
-    if (result.added > 0) '${result.added} added',
-    if (result.updated > 0) '${result.updated} updated',
-    if (result.removed > 0) '${result.removed} removed',
-  ];
-  // A pure re-key changes nothing the user can see.
-  if (parts.isEmpty) return 'Library is up to date: ${_songs(result.total)}.';
-  return '${parts.join(', ')}. ${_songs(result.total)} in total.';
-}
-
-String _songs(int count) => count == 1 ? '1 song' : '$count songs';
 
 class _MinLengthSheet extends ConsumerWidget {
   const _MinLengthSheet();

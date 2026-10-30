@@ -3,10 +3,16 @@ import 'package:drift/native.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
 
-/// A fresh in-memory database with foreign keys on.
+/// A fresh in-memory database with foreign keys on. Streams close
+/// synchronously, so widget tests don't end with drift's close timer pending.
 AppDatabase createTestDatabase() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-  return AppDatabase(NativeDatabase.memory());
+  return AppDatabase(
+    DatabaseConnection(
+      NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    ),
+  );
 }
 
 /// A MediaStore song for sync tests.
@@ -17,6 +23,8 @@ MediaStoreSong mediaSong(
   String? artist,
   String? album,
   String? genre,
+  String? albumArtist,
+  int albumId = 1,
   int? year,
   int track = 0,
   int durationMs = 180000,
@@ -28,10 +36,11 @@ MediaStoreSong mediaSong(
   'artist': artist,
   'album': album,
   'genre': genre,
+  'albumArtist': albumArtist,
   'year': year,
   'track': track,
   'durationMs': durationMs,
-  'albumId': 1,
+  'albumId': albumId,
   'dateAddedSec': 1700000000,
   'dateModifiedSec': modifiedSec,
 })!;

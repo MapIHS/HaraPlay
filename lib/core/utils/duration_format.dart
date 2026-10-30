@@ -11,3 +11,12 @@ String formatDuration(Duration duration) {
       : '$minutes:$seconds';
   return negative ? '-$body' : body;
 }
+
+/// A total running time for headers: "42 min", "3 h 12 min", "1 h".
+String formatTotalDuration(Duration duration) {
+  final minutes = (duration.inSeconds / 60).round();
+  if (minutes < 60) return '$minutes min';
+  final hours = minutes ~/ 60;
+  final rest = minutes % 60;
+  return rest == 0 ? '$hours h' : '$hours h $rest min';
+}

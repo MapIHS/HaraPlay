@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
@@ -20,12 +21,21 @@ class LibrarySyncService {
   Future<SyncResult>? _running;
 
   /// Calls made while a sync is running share its result.
-  Future<SyncResult> sync() =>
-      _running ??= _sync().whenComplete(() => _running = null);
+  Future<SyncResult> sync() => _running ??= _sync().whenComplete(() {
+    _running = null;
+  });
 
   Future<SyncResult> _sync() async {
+    final watch = Stopwatch()..start();
     final scanned = await _source.querySongs();
+    final queried = watch.elapsed;
     final result = await _dao.applyScan(scanned);
+    if (!kReleaseMode) {
+      debugPrint(
+        'HaraPlay sync: $result; MediaStore ${queried.inMilliseconds} ms, '
+        'total ${watch.elapsedMilliseconds} ms',
+      );
+    }
     unawaited(_enrichment.run());
     return result;
   }

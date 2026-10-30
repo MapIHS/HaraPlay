@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
-import 'package:haraplay/features/settings/presentation/library_settings.dart';
+import 'package:haraplay/features/library/presentation/rescan.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/test_app.dart';

@@ -138,6 +138,11 @@ class _SongRowView extends StatelessWidget {
             '#${song.trackNumber ?? '—'} · ${(song.durationMs / 1000).round()} s',
             style: mono,
           ),
+          if (song.nameFromFilename)
+            Text(
+              'artist + title: from filename',
+              style: mono.copyWith(color: colors.danger),
+            ),
           Text(
             f == null
                 ? 'file: not read'
