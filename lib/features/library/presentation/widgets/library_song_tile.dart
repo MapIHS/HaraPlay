@@ -6,7 +6,9 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/theme/hara_tokens.dart';
 import '../../../../core/theme/hara_typography.dart';
 import '../../../../core/widgets/song_tile.dart';
+import '../../../player/domain/queue_song.dart';
 import '../../../player/presentation/player_providers.dart';
+import '../../../player/presentation/song_actions_sheet.dart';
 import '../../domain/library_models.dart';
 
 /// "Artist · Album" with the unknown placeholders.
@@ -40,8 +42,11 @@ class LibrarySongTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(currentSongIdProvider) == song.id;
+    void actions() => showSongActions(context, ref, QueueSong.fromRow(song));
     return SongTile(
       selected: current,
+      onMore: actions,
+      onLongPress: actions,
       title: song.title,
       subtitle: subtitle ?? songSubtitle(song, showAlbum: showAlbum),
       duration: Duration(milliseconds: song.durationMs),

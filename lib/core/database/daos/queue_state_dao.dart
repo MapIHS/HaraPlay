@@ -16,6 +16,7 @@ class SavedQueue {
     required this.shuffle,
     required this.repeat,
     required this.source,
+    this.sourceLabel,
   });
 
   /// Play order.
@@ -28,6 +29,7 @@ class SavedQueue {
   final bool shuffle;
   final RepeatSetting repeat;
   final PlaySource source;
+  final String? sourceLabel;
 }
 
 @DriftAccessor(tables: [QueueState, Songs])
@@ -50,6 +52,7 @@ class QueueStateDao extends DatabaseAccessor<AppDatabase>
           shuffle: queue.shuffle,
           repeatMode: queue.repeat,
           source: queue.source,
+          sourceLabel: Value(queue.sourceLabel),
           updatedAt: at.millisecondsSinceEpoch,
         ),
       );
@@ -83,6 +86,7 @@ class QueueStateDao extends DatabaseAccessor<AppDatabase>
         shuffle: row.shuffle,
         repeat: row.repeatMode,
         source: row.source,
+        sourceLabel: row.sourceLabel,
       );
     } on FormatException {
       return null;

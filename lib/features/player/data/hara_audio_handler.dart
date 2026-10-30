@@ -9,9 +9,9 @@ import '../../../core/artwork/artwork_cache.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/queue_state_dao.dart';
 import '../domain/player.dart';
+import '../domain/queue_model.dart';
 import '../domain/queue_restore.dart';
 import '../domain/queue_song.dart';
-import '../domain/shuffle.dart';
 import 'play_event_recorder.dart';
 
 /// Owns the single [AudioPlayer] and the queue, and publishes state to the
@@ -59,14 +59,11 @@ class HaraAudioHandler extends BaseAudioHandler
   final Random _random;
   final _subscriptions = <StreamSubscription<Object?>>[];
 
-  /// The queue in play order.
+  /// The queue, including the order it would have without shuffle.
+  QueueModel _queue = QueueModel(const []);
+
+  /// [_queue] in play order, matching just_audio's playlist.
   List<QueueSong> _songs = const [];
-
-  /// The queue as it was started; differs from [_songs] while shuffled.
-  List<QueueSong> _original = const [];
-
-  /// While shuffled: `_order[playPosition]` is the index in [_original].
-  List<int>? _order;
   RepeatSetting _repeat = RepeatSetting.off;
   PlaySource _source = PlaySource.songs;
   String? _sourceLabel;
@@ -100,7 +97,7 @@ class HaraAudioHandler extends BaseAudioHandler
   @override
   Stream<Duration> get position => _player.positionStream;
 
-  bool get _shuffled => _order != null;
+  bool get _shuffled => _queue.shuffled;
 
   @override
   Future<void> playSongs(
@@ -114,18 +111,12 @@ class HaraAudioHandler extends BaseAudioHandler
     // Even replaying the same song starts a new listen.
     _recorder.trackChanged(null, source: source);
     final start = startIndex.clamp(0, songs.length - 1);
-    _original = List.unmodifiable(songs);
+    final shuffled = shuffle ?? _shuffled;
+    _queue = QueueModel(songs);
     _source = source;
     _sourceLabel = sourceLabel;
-    var index = start;
-    if (shuffle ?? _shuffled) {
-      _order = shuffleOrder(songs.length, start, _random);
-      _songs = [for (final i in _order!) _original[i]];
-      index = 0;
-    } else {
-      _order = null;
-      _songs = _original;
-    }
+    final index = shuffled ? _queue.shuffle(start, _random) : start;
+    _songs = _queue.songs;
     _publishQueue();
     await _player.setAudioSources(
       _sourcesFor(_songs),
@@ -149,16 +140,10 @@ class HaraAudioHandler extends BaseAudioHandler
   Future<void> setShuffle(bool enabled) async {
     final current = _player.currentIndex;
     if (enabled == _shuffled || current == null || _songs.isEmpty) return;
-    if (enabled) {
-      final order = shuffleOrder(_songs.length, current, _random);
-      _original = _songs;
-      await _rebuildAround(current, [for (final i in order) _songs[i]], 0);
-      _order = order;
-    } else {
-      final originalIndex = _order![current];
-      _order = null;
-      await _rebuildAround(current, _original, originalIndex);
-    }
+    final newCurrent = enabled
+        ? _queue.shuffle(current, _random)
+        : _queue.unshuffle(current);
+    await _rebuildAround(current, _queue.songs, newCurrent);
     unawaited(_saveQueue());
   }
 
@@ -166,6 +151,76 @@ class HaraAudioHandler extends BaseAudioHandler
   Future<void> setRepeat(RepeatSetting mode) async {
     _repeat = mode;
     await _player.setLoopMode(_loopModeFor(mode));
+    _publishStatus();
+    unawaited(_saveQueue());
+  }
+
+  int get _current => _player.currentIndex ?? 0;
+
+  @override
+  Future<void> playNext(List<QueueSong> songs) =>
+      _insert(_songs.isEmpty ? 0 : _current + 1, songs);
+
+  @override
+  Future<void> addToQueue(List<QueueSong> songs) =>
+      _insert(_songs.length, songs);
+
+  Future<void> _insert(int at, List<QueueSong> songs) async {
+    if (songs.isEmpty) return;
+    if (_songs.isEmpty) {
+      await playSongs(songs, source: PlaySource.queue, shuffle: false);
+      return;
+    }
+    await _edit(() async {
+      _queue.insert(at, songs);
+      await _player.insertAudioSources(at, _sourcesFor(songs));
+    });
+  }
+
+  @override
+  Future<void> removeFromQueue(int index) async {
+    if (index < 0 || index >= _songs.length || index == _current) return;
+    await _edit(() async {
+      _queue.removeAt(index);
+      await _player.removeAudioSourceAt(index);
+    });
+  }
+
+  @override
+  Future<void> moveInQueue(int from, int to) async {
+    final last = _songs.length - 1;
+    if (from == to || from < 0 || to < 0 || from > last || to > last) return;
+    await _edit(() async {
+      _queue.move(from, to);
+      await _player.moveAudioSource(from, to);
+    });
+  }
+
+  @override
+  Future<void> clearUpcoming() async {
+    final start = _current + 1;
+    final end = _songs.length;
+    if (start >= end) return;
+    await _edit(() async {
+      _queue.removeRange(start, end);
+      await _player.removeAudioSourceRange(start, end);
+    });
+  }
+
+  @override
+  Future<void> skipTo(int index) => skipToQueueItem(index);
+
+  /// Applies a queue edit to [_queue] and the playlist together. Index
+  /// updates are held back until both agree again.
+  Future<void> _edit(Future<void> Function() edit) async {
+    _rebuilding = true;
+    try {
+      await edit();
+      _songs = _queue.songs;
+    } finally {
+      _rebuilding = false;
+    }
+    _publishQueue();
     _publishStatus();
     unawaited(_saveQueue());
   }
@@ -215,10 +270,10 @@ class HaraAudioHandler extends BaseAudioHandler
     );
     if (plan == null) return;
 
-    _songs = List.unmodifiable(plan.songs);
-    _original = List.unmodifiable(plan.original);
-    _order = plan.order;
+    _queue = QueueModel.restored(plan.original, plan.order);
+    _songs = _queue.songs;
     _source = saved.source;
+    _sourceLabel = saved.sourceLabel;
     _repeat = saved.repeat;
     _publishQueue();
     await _player.setLoopMode(_loopModeFor(_repeat));
@@ -380,7 +435,7 @@ class HaraAudioHandler extends BaseAudioHandler
       repeat: _repeat,
       source: _source,
       sourceLabel: _sourceLabel,
-      queueLength: _songs.length,
+      queue: _songs,
       queueIndex: _player.currentIndex ?? 0,
     );
     if (!_status.isClosed) _status.add(_lastStatus);
@@ -436,12 +491,15 @@ class HaraAudioHandler extends BaseAudioHandler
     await store.save(
       SavedQueue(
         songIds: [for (final s in _songs) s.id],
-        originalSongIds: _shuffled ? [for (final s in _original) s.id] : null,
+        originalSongIds: _shuffled
+            ? [for (final s in _queue.original) s.id]
+            : null,
         currentIndex: _player.currentIndex ?? 0,
         position: _player.position,
         shuffle: _shuffled,
         repeat: _repeat,
         source: _source,
+        sourceLabel: _sourceLabel,
       ),
       at: DateTime.now(),
     );

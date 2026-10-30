@@ -60,7 +60,7 @@ class PlaybackStatus {
     this.repeat = RepeatSetting.off,
     this.source = PlaySource.songs,
     this.sourceLabel,
-    this.queueLength = 0,
+    this.queue = const [],
     this.queueIndex = 0,
   });
 
@@ -81,8 +81,15 @@ class PlaybackStatus {
   /// Where the queue came from, e.g. [PlaySource.album] and "Night Drive".
   final PlaySource source;
   final String? sourceLabel;
-  final int queueLength;
+
+  /// The whole queue in play order; [queueIndex] is the current song.
+  final List<QueueSong> queue;
   final int queueIndex;
+
+  int get queueLength => queue.length;
+
+  /// Songs after the current one.
+  int get upcomingCount => (queue.length - queueIndex - 1).clamp(0, 1 << 30);
 
   PlaybackStatus copyWith({
     bool? playing,
@@ -97,7 +104,7 @@ class PlaybackStatus {
     repeat: repeat ?? this.repeat,
     source: source,
     sourceLabel: sourceLabel,
-    queueLength: queueLength,
+    queue: queue,
     queueIndex: queueIndex,
   );
 }

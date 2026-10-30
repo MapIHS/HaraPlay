@@ -6,19 +6,28 @@ import '../theme/hara_tokens.dart';
 ///
 /// [title] adds a header row; [builder] provides the body, which is wrapped
 /// so it scrolls when taller than ~85% of the screen.
+///
+/// With [scrollable] false the sheet takes its full height and [builder]
+/// gets a bounded box, for content with its own scroll view (e.g. a
+/// reorderable list).
 Future<T?> showHaraSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   String? title,
+  bool scrollable = true,
 }) {
+  final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
   return showModalBottomSheet<T>(
     context: context,
+    // Above the tab shell, so the docked player and bottom navigation are
+    // covered (and dimmed) instead of drawn over the sheet.
+    useRootNavigator: true,
     useSafeArea: true,
     isScrollControlled: true,
-    constraints: BoxConstraints(
-      maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-    ),
-    builder: (context) => _HaraSheetBody(title: title, builder: builder),
+    constraints: BoxConstraints(maxHeight: maxHeight),
+    builder: (context) => scrollable
+        ? _HaraSheetBody(title: title, builder: builder)
+        : SizedBox(height: maxHeight, child: builder(context)),
   );
 }
 

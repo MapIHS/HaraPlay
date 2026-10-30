@@ -2926,6 +2926,17 @@ class $QueueStateTable extends QueueState
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<PlaySource>($QueueStateTable.$convertersource);
+  static const VerificationMeta _sourceLabelMeta = const VerificationMeta(
+    'sourceLabel',
+  );
+  @override
+  late final GeneratedColumn<String> sourceLabel = GeneratedColumn<String>(
+    'source_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2947,6 +2958,7 @@ class $QueueStateTable extends QueueState
     shuffle,
     repeatMode,
     source,
+    sourceLabel,
     updatedAt,
   ];
   @override
@@ -3008,6 +3020,15 @@ class $QueueStateTable extends QueueState
     } else if (isInserting) {
       context.missing(_shuffleMeta);
     }
+    if (data.containsKey('source_label')) {
+      context.handle(
+        _sourceLabelMeta,
+        sourceLabel.isAcceptableOrUnknown(
+          data['source_label']!,
+          _sourceLabelMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -3061,6 +3082,10 @@ class $QueueStateTable extends QueueState
           data['${effectivePrefix}source'],
         )!,
       ),
+      sourceLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_label'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -3094,6 +3119,9 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
   final bool shuffle;
   final RepeatSetting repeatMode;
   final PlaySource source;
+
+  /// The source's name, e.g. the album title (schema v3).
+  final String? sourceLabel;
   final int updatedAt;
   const QueueStateRow({
     required this.id,
@@ -3104,6 +3132,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
     required this.shuffle,
     required this.repeatMode,
     required this.source,
+    this.sourceLabel,
     required this.updatedAt,
   });
   @override
@@ -3127,6 +3156,9 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
         $QueueStateTable.$convertersource.toSql(source),
       );
     }
+    if (!nullToAbsent || sourceLabel != null) {
+      map['source_label'] = Variable<String>(sourceLabel);
+    }
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -3143,6 +3175,9 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
       shuffle: Value(shuffle),
       repeatMode: Value(repeatMode),
       source: Value(source),
+      sourceLabel: sourceLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceLabel),
       updatedAt: Value(updatedAt),
     );
   }
@@ -3165,6 +3200,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
       source: $QueueStateTable.$convertersource.fromJson(
         serializer.fromJson<String>(json['source']),
       ),
+      sourceLabel: serializer.fromJson<String?>(json['sourceLabel']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -3184,6 +3220,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
       'source': serializer.toJson<String>(
         $QueueStateTable.$convertersource.toJson(source),
       ),
+      'sourceLabel': serializer.toJson<String?>(sourceLabel),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -3197,6 +3234,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
     bool? shuffle,
     RepeatSetting? repeatMode,
     PlaySource? source,
+    Value<String?> sourceLabel = const Value.absent(),
     int? updatedAt,
   }) => QueueStateRow(
     id: id ?? this.id,
@@ -3209,6 +3247,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
     shuffle: shuffle ?? this.shuffle,
     repeatMode: repeatMode ?? this.repeatMode,
     source: source ?? this.source,
+    sourceLabel: sourceLabel.present ? sourceLabel.value : this.sourceLabel,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   QueueStateRow copyWithCompanion(QueueStateCompanion data) {
@@ -3229,6 +3268,9 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
           ? data.repeatMode.value
           : this.repeatMode,
       source: data.source.present ? data.source.value : this.source,
+      sourceLabel: data.sourceLabel.present
+          ? data.sourceLabel.value
+          : this.sourceLabel,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -3244,6 +3286,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
           ..write('shuffle: $shuffle, ')
           ..write('repeatMode: $repeatMode, ')
           ..write('source: $source, ')
+          ..write('sourceLabel: $sourceLabel, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -3259,6 +3302,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
     shuffle,
     repeatMode,
     source,
+    sourceLabel,
     updatedAt,
   );
   @override
@@ -3273,6 +3317,7 @@ class QueueStateRow extends DataClass implements Insertable<QueueStateRow> {
           other.shuffle == this.shuffle &&
           other.repeatMode == this.repeatMode &&
           other.source == this.source &&
+          other.sourceLabel == this.sourceLabel &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -3285,6 +3330,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
   final Value<bool> shuffle;
   final Value<RepeatSetting> repeatMode;
   final Value<PlaySource> source;
+  final Value<String?> sourceLabel;
   final Value<int> updatedAt;
   const QueueStateCompanion({
     this.id = const Value.absent(),
@@ -3295,6 +3341,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
     this.shuffle = const Value.absent(),
     this.repeatMode = const Value.absent(),
     this.source = const Value.absent(),
+    this.sourceLabel = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   QueueStateCompanion.insert({
@@ -3306,6 +3353,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
     required bool shuffle,
     required RepeatSetting repeatMode,
     required PlaySource source,
+    this.sourceLabel = const Value.absent(),
     required int updatedAt,
   }) : songIds = Value(songIds),
        currentIndex = Value(currentIndex),
@@ -3323,6 +3371,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
     Expression<bool>? shuffle,
     Expression<String>? repeatMode,
     Expression<String>? source,
+    Expression<String>? sourceLabel,
     Expression<int>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -3334,6 +3383,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
       if (shuffle != null) 'shuffle': shuffle,
       if (repeatMode != null) 'repeat_mode': repeatMode,
       if (source != null) 'source': source,
+      if (sourceLabel != null) 'source_label': sourceLabel,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -3347,6 +3397,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
     Value<bool>? shuffle,
     Value<RepeatSetting>? repeatMode,
     Value<PlaySource>? source,
+    Value<String?>? sourceLabel,
     Value<int>? updatedAt,
   }) {
     return QueueStateCompanion(
@@ -3358,6 +3409,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
       shuffle: shuffle ?? this.shuffle,
       repeatMode: repeatMode ?? this.repeatMode,
       source: source ?? this.source,
+      sourceLabel: sourceLabel ?? this.sourceLabel,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -3393,6 +3445,9 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
         $QueueStateTable.$convertersource.toSql(source.value),
       );
     }
+    if (sourceLabel.present) {
+      map['source_label'] = Variable<String>(sourceLabel.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -3410,6 +3465,7 @@ class QueueStateCompanion extends UpdateCompanion<QueueStateRow> {
           ..write('shuffle: $shuffle, ')
           ..write('repeatMode: $repeatMode, ')
           ..write('source: $source, ')
+          ..write('sourceLabel: $sourceLabel, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -7375,6 +7431,7 @@ typedef $$QueueStateTableCreateCompanionBuilder = QueueStateCompanion Function({
   required bool shuffle,
   required RepeatSetting repeatMode,
   required PlaySource source,
+  Value<String?> sourceLabel,
   required int updatedAt,
 });
 typedef $$QueueStateTableUpdateCompanionBuilder = QueueStateCompanion Function({
@@ -7386,6 +7443,7 @@ typedef $$QueueStateTableUpdateCompanionBuilder = QueueStateCompanion Function({
   Value<bool> shuffle,
   Value<RepeatSetting> repeatMode,
   Value<PlaySource> source,
+  Value<String?> sourceLabel,
   Value<int> updatedAt,
 });
 
@@ -7439,6 +7497,11 @@ class $$QueueStateTableFilterComposer
         column: $table.source,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnFilters<String> get sourceLabel => $composableBuilder(
+    column: $table.sourceLabel,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
@@ -7495,6 +7558,11 @@ class $$QueueStateTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sourceLabel => $composableBuilder(
+    column: $table.sourceLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -7543,6 +7611,11 @@ class $$QueueStateTableAnnotationComposer
   GeneratedColumnWithTypeConverter<PlaySource, String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
 
+  GeneratedColumn<String> get sourceLabel => $composableBuilder(
+    column: $table.sourceLabel,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -7586,6 +7659,7 @@ class $$QueueStateTableTableManager
                 Value<bool> shuffle = const Value.absent(),
                 Value<RepeatSetting> repeatMode = const Value.absent(),
                 Value<PlaySource> source = const Value.absent(),
+                Value<String?> sourceLabel = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => QueueStateCompanion(
                 id: id,
@@ -7596,6 +7670,7 @@ class $$QueueStateTableTableManager
                 shuffle: shuffle,
                 repeatMode: repeatMode,
                 source: source,
+                sourceLabel: sourceLabel,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -7608,6 +7683,7 @@ class $$QueueStateTableTableManager
                 required bool shuffle,
                 required RepeatSetting repeatMode,
                 required PlaySource source,
+                Value<String?> sourceLabel = const Value.absent(),
                 required int updatedAt,
               }) => QueueStateCompanion.insert(
                 id: id,
@@ -7618,6 +7694,7 @@ class $$QueueStateTableTableManager
                 shuffle: shuffle,
                 repeatMode: repeatMode,
                 source: source,
+                sourceLabel: sourceLabel,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0

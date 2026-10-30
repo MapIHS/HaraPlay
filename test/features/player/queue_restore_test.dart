@@ -28,6 +28,7 @@ void main() {
     shuffle: original != null,
     repeat: RepeatSetting.all,
     source: PlaySource.album,
+    sourceLabel: 'Night Drive',
   );
 
   test('saves and loads the queue row', () async {
@@ -50,6 +51,7 @@ void main() {
     expect(loaded.shuffle, isTrue);
     expect(loaded.repeat, RepeatSetting.all);
     expect(loaded.source, PlaySource.album);
+    expect(loaded.sourceLabel, 'Night Drive');
   });
 
   test('restores the saved song and position', () async {

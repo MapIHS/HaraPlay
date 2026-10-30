@@ -221,3 +221,13 @@ final genreSongsProvider = StreamProvider.autoDispose
           .watch(browseDaoProvider)
           .watchGenreSongs(genre, minDurationMs: ref.watch(_minMsProvider)),
     );
+
+/// One song by ID (song info sheet); null if it no longer exists.
+final songByIdProvider = FutureProvider.autoDispose.family<SongRow?, int>(
+  (ref, id) =>
+      (ref
+              .watch(appDatabaseProvider)
+              .select(ref.watch(appDatabaseProvider).songs)
+            ..where((s) => s.id.equals(id)))
+          .getSingleOrNull(),
+);

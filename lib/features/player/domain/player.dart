@@ -28,4 +28,27 @@ abstract interface class Player {
   /// order, without interrupting the current song.
   Future<void> setShuffle(bool enabled);
   Future<void> setRepeat(RepeatSetting mode);
+
+  // Queue editing. Positions are play-order indexes (as in the queue
+  // sheet). None of these interrupts the current song.
+
+  /// Inserts [songs] right after the current song. Starts playback when
+  /// the queue is empty.
+  Future<void> playNext(List<QueueSong> songs);
+
+  /// Appends [songs] to the end of the queue. Starts playback when the
+  /// queue is empty.
+  Future<void> addToQueue(List<QueueSong> songs);
+
+  /// Removes the entry at [index]; the current song cannot be removed.
+  Future<void> removeFromQueue(int index);
+
+  /// Moves the entry at [from] so that it ends up at [to].
+  Future<void> moveInQueue(int from, int to);
+
+  /// Removes every song after the current one.
+  Future<void> clearUpcoming();
+
+  /// Plays the entry at [index] from its start.
+  Future<void> skipTo(int index);
 }

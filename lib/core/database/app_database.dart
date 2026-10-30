@@ -32,14 +32,16 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(driftDatabase(name: 'haraplay'));
 
   /// v1: M4 schema. v2: songs.name_from_filename.
+  /// v3: queue_state.source_label.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.addColumn(songs, songs.nameFromFilename);
+      if (from < 3) await m.addColumn(queueState, queueState.sourceLabel);
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),
   );

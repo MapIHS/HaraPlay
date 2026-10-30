@@ -11,6 +11,7 @@ import 'package:haraplay/features/library/data/file_tag_reader.dart';
 import 'package:haraplay/features/library/data/tag_merge.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 import 'package:haraplay/features/player/domain/player.dart';
+import 'package:haraplay/features/player/domain/queue_model.dart';
 import 'package:haraplay/features/player/domain/queue_song.dart';
 
 /// Permission service whose answers are scripted by the test.
@@ -115,11 +116,14 @@ class FakeArtworkCache extends ArtworkCache {
   }
 }
 
-/// Records what the UI asks the player to do; statuses are pushed by tests.
+/// Records what the UI asks the player to do. Queue edits run on a real
+/// [QueueModel], so widget tests see the same queue the app would.
 class FakePlayer implements Player {
   final _status = StreamController<PlaybackStatus>.broadcast();
   final _position = StreamController<Duration>.broadcast();
   PlaybackStatus _current = PlaybackStatus.idle;
+  QueueModel _queue = QueueModel(const []);
+  int _index = 0;
 
   final played = <(List<QueueSong>, int, PlaySource)>[];
   final labels = <String?>[];
@@ -129,12 +133,33 @@ class FakePlayer implements Player {
   int nexts = 0;
   int previouses = 0;
 
+  List<int> get queueIds => [for (final s in _queue.songs) s.id];
+  int get currentIndex => _index;
+
   void emit(PlaybackStatus status) {
     _current = status;
     _status.add(status);
   }
 
   void emitPosition(Duration position) => _position.add(position);
+
+  void _emitQueue({bool? playing}) {
+    final songs = _queue.songs;
+    emit(
+      PlaybackStatus(
+        song: songs.isEmpty ? null : songs[_index],
+        playing: playing ?? _current.playing,
+        buffering: false,
+        duration: songs.isEmpty ? Duration.zero : songs[_index].duration,
+        shuffle: _queue.shuffled,
+        repeat: _current.repeat,
+        source: _current.source,
+        sourceLabel: _current.sourceLabel,
+        queue: songs,
+        queueIndex: _index,
+      ),
+    );
+  }
 
   @override
   Stream<PlaybackStatus> get status async* {
@@ -159,20 +184,18 @@ class FakePlayer implements Player {
     played.add((songs, startIndex, source));
     labels.add(sourceLabel);
     shuffleArgs.add(shuffle);
-    emit(
-      PlaybackStatus(
-        song: songs[startIndex],
-        playing: true,
-        buffering: false,
-        duration: songs[startIndex].duration,
-        shuffle: shuffle ?? _current.shuffle,
-        repeat: _current.repeat,
-        source: source,
-        sourceLabel: sourceLabel,
-        queueLength: songs.length,
-        queueIndex: startIndex,
-      ),
+    _queue = QueueModel(songs);
+    _index = startIndex;
+    _current = PlaybackStatus(
+      song: null,
+      playing: true,
+      buffering: false,
+      duration: Duration.zero,
+      repeat: _current.repeat,
+      source: source,
+      sourceLabel: sourceLabel,
     );
+    _emitQueue(playing: true);
   }
 
   @override
@@ -197,4 +220,55 @@ class FakePlayer implements Player {
   @override
   Future<void> setRepeat(RepeatSetting mode) async =>
       emit(_current.copyWith(repeat: mode));
+
+  @override
+  Future<void> playNext(List<QueueSong> songs) async {
+    if (_queue.length == 0) {
+      return playSongs(songs, source: PlaySource.queue);
+    }
+    _queue.insert(_index + 1, songs);
+    _emitQueue();
+  }
+
+  @override
+  Future<void> addToQueue(List<QueueSong> songs) async {
+    if (_queue.length == 0) {
+      return playSongs(songs, source: PlaySource.queue);
+    }
+    _queue.insert(_queue.length, songs);
+    _emitQueue();
+  }
+
+  @override
+  Future<void> removeFromQueue(int index) async {
+    if (index == _index) return;
+    _queue.removeAt(index);
+    if (index < _index) _index--;
+    _emitQueue();
+  }
+
+  @override
+  Future<void> moveInQueue(int from, int to) async {
+    _queue.move(from, to);
+    if (from == _index) {
+      _index = to;
+    } else if (from < _index && to >= _index) {
+      _index--;
+    } else if (from > _index && to <= _index) {
+      _index++;
+    }
+    _emitQueue();
+  }
+
+  @override
+  Future<void> clearUpcoming() async {
+    _queue.removeRange(_index + 1, _queue.length);
+    _emitQueue();
+  }
+
+  @override
+  Future<void> skipTo(int index) async {
+    _index = index;
+    _emitQueue();
+  }
 }

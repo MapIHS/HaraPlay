@@ -8,10 +8,13 @@ import '../../../core/database/app_database.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
+import '../../../core/widgets/hara_button.dart';
 import '../../../core/widgets/hara_icon_button.dart';
 import '../domain/queue_song.dart';
 import 'player_providers.dart';
+import 'queue_sheet.dart';
 import 'seek_bar.dart';
+import 'song_actions_sheet.dart';
 
 /// "Playing from …" text for the top bar.
 String playingFrom(PlaybackStatus status) {
@@ -76,7 +79,18 @@ class NowPlayingScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: HaraSizes.minTouchTarget),
+                HaraIconButton(
+                  icon: HaraIcons.ellipsisVertical,
+                  tooltip: 'Song actions',
+                  onPressed: () => showSongActions(
+                    context,
+                    ref,
+                    song,
+                    beforeNavigate: onCollapse,
+                    // A snackbar would sit behind the player.
+                    showFeedback: false,
+                  ),
+                ),
               ],
             ),
           ),
@@ -139,7 +153,17 @@ class NowPlayingScreen extends ConsumerWidget {
           ),
           const SizedBox(height: HaraSpacing.md),
           _TransportControls(status: status),
-          const SizedBox(height: HaraSpacing.xl),
+          const SizedBox(height: HaraSpacing.sm),
+          Center(
+            child: HaraButton(
+              label: 'Up next · ${status.upcomingCount}',
+              icon: HaraIcons.listMusic,
+              variant: HaraButtonVariant.ghost,
+              size: HaraButtonSize.small,
+              onPressed: () => showQueueSheet(context),
+            ),
+          ),
+          const SizedBox(height: HaraSpacing.sm),
         ],
       ),
     );

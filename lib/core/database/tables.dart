@@ -149,6 +149,9 @@ class QueueState extends Table {
   BoolColumn get shuffle => boolean()();
   TextColumn get repeatMode => textEnum<RepeatSetting>()();
   TextColumn get source => textEnum<PlaySource>()();
+
+  /// The source's name, e.g. the album title (schema v3).
+  TextColumn get sourceLabel => text().nullable()();
   IntColumn get updatedAt => integer()();
 
   @override
