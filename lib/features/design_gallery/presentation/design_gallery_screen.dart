@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_colors.dart';
@@ -14,19 +13,18 @@ import '../../../core/widgets/hara_icon_button.dart';
 import '../../../core/widgets/hara_sheet.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/song_tile.dart';
-import '../../settings/presentation/theme_mode_controller.dart';
+import '../../settings/presentation/theme_mode_picker.dart';
 
 /// Debug screen showing every design token and core widget in the current
-/// theme. Reachable from Settings in debug builds (wired up in M2).
-class DesignGalleryScreen extends ConsumerStatefulWidget {
+/// theme. Reachable from Settings → Developer in debug builds.
+class DesignGalleryScreen extends StatefulWidget {
   const DesignGalleryScreen({super.key});
 
   @override
-  ConsumerState<DesignGalleryScreen> createState() =>
-      _DesignGalleryScreenState();
+  State<DesignGalleryScreen> createState() => _DesignGalleryScreenState();
 }
 
-class _DesignGalleryScreenState extends ConsumerState<DesignGalleryScreen> {
+class _DesignGalleryScreenState extends State<DesignGalleryScreen> {
   bool _shuffle = true;
   bool _playing = false;
   int _repeat = 0;
@@ -47,7 +45,7 @@ class _DesignGalleryScreenState extends ConsumerState<DesignGalleryScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: HaraSpacing.xxxl),
         children: [
-          const _ThemeModePicker(),
+          const _Padded(child: ThemeModePicker()),
           const SectionHeader(title: 'Colours'),
           _Padded(
             child: Wrap(
@@ -353,41 +351,6 @@ class _DesignGalleryScreenState extends ConsumerState<DesignGalleryScreen> {
               title: Text(label),
               onTap: () => Navigator.of(context).pop(),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThemeModePicker extends ConsumerWidget {
-  const _ThemeModePicker();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(themeModeProvider);
-    final controller = ref.read(themeModeProvider.notifier);
-    return _Padded(
-      child: Row(
-        children: [
-          for (final (value, icon, label) in const [
-            (ThemeMode.system, HaraIcons.sunMoon, 'System'),
-            (ThemeMode.light, HaraIcons.sun, 'Light'),
-            (ThemeMode.dark, HaraIcons.moon, 'Dark'),
-          ]) ...[
-            Expanded(
-              child: HaraButton(
-                label: label,
-                icon: icon,
-                expand: true,
-                size: HaraButtonSize.small,
-                variant: mode == value
-                    ? HaraButtonVariant.primary
-                    : HaraButtonVariant.secondary,
-                onPressed: () => controller.setThemeMode(value),
-              ),
-            ),
-            if (value != ThemeMode.dark) const SizedBox(width: HaraSpacing.xs),
-          ],
         ],
       ),
     );

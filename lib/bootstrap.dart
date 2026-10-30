@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'app/licenses.dart';
 import 'core/storage/preferences.dart';
 
 /// Initialises app-wide services before the first frame.
@@ -9,6 +10,7 @@ import 'core/storage/preferences.dart';
 /// Later milestones add the database and audio service here.
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerAssetLicenses();
   final preferences = await createPreferences();
   runApp(
     ProviderScope(

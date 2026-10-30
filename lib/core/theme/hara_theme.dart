@@ -1,6 +1,8 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../icons/hara_icons.dart';
 import 'hara_colors.dart';
 import 'hara_tokens.dart';
 import 'hara_typography.dart';
@@ -69,6 +71,20 @@ abstract final class HaraTheme {
       textTheme: textTheme,
       extensions: [c, HaraTypography.extras(c)],
       splashFactory: InkRipple.splashFactory,
+      // Pushed pages slide along the horizontal shared axis.
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: SharedAxisPageTransitionsBuilder(
+              transitionType: SharedAxisTransitionType.horizontal,
+              fillColor: c.background,
+            ),
+        },
+      ),
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (_) => const Icon(HaraIcons.arrowLeft),
+        closeButtonIconBuilder: (_) => const Icon(HaraIcons.x),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: c.background,
         foregroundColor: c.foreground,
