@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/section_header.dart';
+import 'library_settings.dart';
 import 'settings_tile.dart';
 import 'theme_mode_picker.dart';
 
@@ -30,6 +31,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             child: ThemeModePicker(),
           ),
+          const SectionHeader(title: 'Library'),
+          const LibrarySettings(),
           const SectionHeader(title: 'About'),
           SettingsTile(
             icon: HaraIcons.info,
@@ -54,6 +57,12 @@ class SettingsScreen extends StatelessWidget {
               title: 'MediaStore inspector',
               subtitle: 'Every song and tag the library scan reads',
               onTap: () => context.push(AppRoutes.mediaStoreDebug),
+            ),
+            SettingsTile(
+              icon: HaraIcons.chartColumn,
+              title: 'Library database',
+              subtitle: 'Table counts, last sync and tag fallbacks',
+              onTap: () => context.push(AppRoutes.libraryDatabaseDebug),
             ),
           ],
         ],

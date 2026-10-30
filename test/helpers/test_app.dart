@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/app.dart';
+import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/media_store_channel.dart';
 import 'package:haraplay/core/storage/preferences.dart';
 import 'package:haraplay/core/theme/hara_theme.dart';
+import 'package:haraplay/features/library/data/library_sync_service.dart';
+import 'package:haraplay/features/library/data/tag_enrichment_service.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 import 'package:haraplay/features/onboarding/presentation/onboarding_controllers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +15,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'fakes.dart';
+import 'test_database.dart';
 
 /// Preferences backed by an in-memory store, optionally pre-filled.
 Future<SharedPreferencesWithCache> createTestPreferences([
@@ -56,8 +60,15 @@ Future<void> pumpHaraApp(
   FakeMediaPermissionService? permissions,
   FakeMediaSource? mediaSource,
   int sdkInt = 34,
+  AppDatabase? database,
 }) async {
   final preferences = await createTestPreferences(prefs);
+  final db = database ?? createTestDatabase();
+  addTearDown(() async {
+    // Unmount first so stream queries are cancelled before the DB closes.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await db.close();
+  });
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -68,6 +79,15 @@ Future<void> pumpHaraApp(
           permissions ?? FakeMediaPermissionService(status: initialAccess),
         ),
         mediaSourceProvider.overrideWithValue(mediaSource ?? FakeMediaSource()),
+        appDatabaseProvider.overrideWithValue(db),
+        tagEnrichmentServiceProvider.overrideWith((ref) {
+          final service = TagEnrichmentService(
+            ref.watch(libraryDaoProvider),
+            reader: FakeFileTagReader(),
+          );
+          ref.onDispose(service.dispose);
+          return service;
+        }),
       ],
       child: const HaraPlayApp(),
     ),

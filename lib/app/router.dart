@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/design_gallery/presentation/design_gallery_screen.dart';
+import '../features/design_gallery/presentation/library_database_debug_screen.dart';
 import '../features/design_gallery/presentation/media_store_debug_screen.dart';
 import '../features/favorites/presentation/liked_songs_screen.dart';
 import '../features/home/presentation/home_screen.dart';
@@ -28,6 +29,7 @@ abstract final class AppRoutes {
   static const settings = '/settings';
   static const designGallery = '/settings/gallery';
   static const mediaStoreDebug = '/settings/media-store';
+  static const libraryDatabaseDebug = '/settings/library-database';
   static const likedSongs = '/playlists/favorites';
 
   static String album(int albumId) => '/library/album/$albumId';
@@ -155,6 +157,10 @@ GoRouter createRouter({
             GoRoute(
               path: 'media-store',
               builder: (context, state) => const MediaStoreDebugScreen(),
+            ),
+            GoRoute(
+              path: 'library-database',
+              builder: (context, state) => const LibraryDatabaseDebugScreen(),
             ),
           ],
         ],

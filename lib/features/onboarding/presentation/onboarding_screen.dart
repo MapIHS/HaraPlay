@@ -2,43 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/daos/library_dao.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/platform/media_store_channel.dart';
-import '../../../core/platform/media_store_song.dart';
 import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_button.dart';
 import '../../../core/widgets/hara_chip.dart';
 import '../../../core/widgets/hara_pressable.dart';
+import '../../library/data/library_sync_service.dart';
+import '../../settings/presentation/min_song_length_controller.dart';
 import '../data/media_permission_service.dart';
 import 'onboarding_controllers.dart';
 
-/// Counts from the first library scan.
-class LibraryScanSummary {
-  const LibraryScanSummary({
-    required this.songCount,
-    required this.albumCount,
-    required this.folderCount,
-  });
-
-  factory LibraryScanSummary.of(List<MediaStoreSong> songs) =>
-      LibraryScanSummary(
-        songCount: songs.length,
-        albumCount: songs.map((s) => s.albumId).nonNulls.toSet().length,
-        folderCount: songs.map((s) => s.folderPath).toSet().length,
-      );
-
-  final int songCount;
-  final int albumCount;
-  final int folderCount;
-}
-
-/// First scan shown once access is granted. M4 replaces this with the
-/// database sync.
-final firstScanProvider = FutureProvider.autoDispose<LibraryScanSummary>(
-  (ref) async =>
-      LibraryScanSummary.of(await ref.watch(mediaSourceProvider).querySongs()),
-);
+/// First sync into the database, then the counts the user will see.
+final firstScanProvider = FutureProvider.autoDispose<LibraryCounts>((
+  ref,
+) async {
+  // The service, not the controller: a provider may not change another
+  // provider's state while it is being built.
+  await ref.read(librarySyncServiceProvider).sync();
+  return ref
+      .read(libraryDaoProvider)
+      .counts(minDurationMs: ref.read(minSongLengthProvider).inMilliseconds);
+});
 
 /// Permission gate and first scan. The router keeps the user here until
 /// access is granted and they have seen the scan result.
@@ -318,22 +305,22 @@ class _ScanStep extends ConsumerWidget {
     void rescan() => ref.invalidate(firstScanProvider);
 
     return switch (scan) {
-      AsyncData(value: final summary) when summary.songCount > 0 => _StepLayout(
+      AsyncData(value: final summary) when summary.songs > 0 => _StepLayout(
         icon: HaraIcons.check,
         tileColor: HaraColors.of(context).mint,
-        title: _songsFound(summary.songCount),
+        title: _songsFound(summary.songs),
         message: 'Your library is ready.',
         note: Wrap(
           spacing: HaraSpacing.sm,
           runSpacing: HaraSpacing.sm,
           children: [
             HaraChip(
-              value: '${summary.albumCount}',
-              label: summary.albumCount == 1 ? 'Album' : 'Albums',
+              value: '${summary.albums}',
+              label: summary.albums == 1 ? 'Album' : 'Albums',
             ),
             HaraChip(
-              value: '${summary.folderCount}',
-              label: summary.folderCount == 1 ? 'Folder' : 'Folders',
+              value: '${summary.folders}',
+              label: summary.folders == 1 ? 'Folder' : 'Folders',
             ),
           ],
         ),

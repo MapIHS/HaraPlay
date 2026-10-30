@@ -20,6 +20,19 @@ flutter test
 flutter run
 ```
 
+The drift database code (`*.g.dart`) is generated and committed. After
+changing a table or DAO, regenerate it:
+
+```bash
+dart run build_runner build
+```
+
+Other tools:
+
+- `dart run tool/gen_icons.dart`: regenerates `HaraIcons` from `tool/icons.txt`.
+- `tool/make_test_audio.sh <dir>`: makes tagged test tones (needs ffmpeg) to
+  push to an emulator, e.g. `adb push <dir>/. "/sdcard/Music/HaraPlay Samples"`.
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE). Bundled fonts and icons are listed in

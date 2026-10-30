@@ -1,7 +1,10 @@
 import 'dart:typed_data';
 
+import 'package:haraplay/core/database/daos/library_dao.dart';
 import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
+import 'package:haraplay/features/library/data/file_tag_reader.dart';
+import 'package:haraplay/features/library/data/tag_merge.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 
 /// Permission service whose answers are scripted by the test.
@@ -72,3 +75,22 @@ MediaStoreSong testSong(
   'path': '$folder/song$id.mp3',
   'durationMs': 180000,
 })!;
+
+/// Returns scripted tags per path instead of reading files.
+class FakeFileTagReader extends FileTagReader {
+  FakeFileTagReader([this.tagsByPath = const {}]);
+
+  final Map<String, SongTags> tagsByPath;
+  final List<List<String>> batches = [];
+
+  @override
+  Future<List<FileTagsResult>> readAll(List<String> paths) async {
+    batches.add(paths);
+    return [
+      for (final path in paths)
+        tagsByPath[path] == null
+            ? const FileTagsResult.failed()
+            : FileTagsResult.read(tagsByPath[path]!),
+    ];
+  }
+}
