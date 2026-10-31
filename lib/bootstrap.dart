@@ -12,6 +12,8 @@ import 'core/database/app_database.dart';
 import 'core/debug/frame_stats.dart';
 import 'core/platform/media_store_channel.dart';
 import 'core/storage/preferences.dart';
+import 'features/equalizer/data/audio_effects.dart';
+import 'features/equalizer/presentation/equalizer_controller.dart';
 import 'features/library/presentation/library_providers.dart';
 import 'features/onboarding/data/media_permission_service.dart';
 import 'features/onboarding/data/onboarding_repository.dart';
@@ -35,10 +37,27 @@ Future<void> bootstrap() async {
   // Shared with the audio handler, which lives outside the widget tree.
   final database = AppDatabase.open();
   final artwork = ArtworkCache(channel, getApplicationCacheDirectory);
+
+  // Only effects the device has: just_audio creating a missing one would
+  // break playback.
+  final effectsInfo = await probeAudioEffects();
+  final equalizer = effectsInfo.equalizer == null ? null : AndroidEqualizer();
+  final loudness = effectsInfo.loudness ? AndroidLoudnessEnhancer() : null;
+  final effects = JustAudioEffects(equalizer: equalizer, loudness: loudness);
+  await applyEqualizerSettings(
+    loadEqualizerSettings(preferences),
+    effectsInfo,
+    effects,
+  );
+
   final handler = await AudioService.init(
     builder: () => HaraAudioHandler(
       // Unplayable queue entries are skipped by HaraAudioHandler itself.
-      player: AudioPlayer(),
+      player: AudioPlayer(
+        audioPipeline: AudioPipeline(
+          androidAudioEffects: [?equalizer, ?loudness],
+        ),
+      ),
       recorder: PlayEventRecorder(database.playEventsDao),
       artwork: artwork,
       queueStore: database.queueStateDao,
@@ -81,6 +100,8 @@ Future<void> bootstrap() async {
       appDatabaseProvider.overrideWithValue(database),
       artworkCacheProvider.overrideWithValue(artwork),
       playerProvider.overrideWithValue(handler),
+      audioEffectsInfoProvider.overrideWithValue(effectsInfo),
+      audioEffectsSinkProvider.overrideWithValue(effects),
     ],
   );
   runApp(

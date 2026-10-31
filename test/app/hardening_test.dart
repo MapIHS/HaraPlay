@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 import 'package:haraplay/core/database/app_database.dart';
+import 'package:haraplay/features/equalizer/domain/equalizer.dart';
 import 'package:haraplay/features/lyrics/presentation/lyrics_view.dart';
 import 'package:haraplay/features/player/domain/queue_song.dart';
 import 'package:haraplay/features/player/presentation/mini_player.dart';
@@ -201,6 +202,13 @@ void main() {
     // Settings.
     await tap(tester, navTab('Home'));
     await tap(tester, find.byTooltip('Settings'));
+    await tap(tester, find.text('Equalizer'));
+    await tester.dragFrom(
+      tester.getCenter(find.byType(Scaffold).last),
+      const Offset(0, -2000),
+    );
+    await settle(tester);
+    await back(tester);
     await back(tester);
 
     // Listening stats: both tabs, scrolled to the end.
@@ -234,6 +242,14 @@ void main() {
         tester,
         database: await library(),
         player: player,
+        effectsInfo: const AudioEffectsInfo(
+          equalizer: EqualizerLayout(
+            minDecibels: -15,
+            maxDecibels: 15,
+            bands: [60, 230, 910, 3600, 14000],
+          ),
+          loudness: true,
+        ),
         lyrics: FakeLyricsLoader({
           // The first song in the queue (ordered by ID).
           '/storage/emulated/0/Music/song1.mp3':

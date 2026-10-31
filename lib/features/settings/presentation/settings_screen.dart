@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../equalizer/presentation/equalizer_controller.dart';
+import '../../equalizer/presentation/equalizer_screen.dart';
 import 'library_settings.dart';
 import 'settings_tile.dart';
 import 'theme_mode_picker.dart';
@@ -31,6 +34,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             child: ThemeModePicker(),
           ),
+          const SectionHeader(title: 'Playback'),
+          const _EqualizerTile(),
           const SectionHeader(title: 'Library'),
           const LibrarySettings(),
           const SectionHeader(title: 'About'),
@@ -69,4 +74,19 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EqualizerTile extends ConsumerWidget {
+  const _EqualizerTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => SettingsTile(
+    icon: HaraIcons.slidersHorizontal,
+    title: 'Equalizer',
+    subtitle: equalizerSummary(
+      ref.watch(equalizerProvider),
+      ref.watch(audioEffectsInfoProvider),
+    ),
+    onTap: () => context.push(AppRoutes.equalizer),
+  );
 }

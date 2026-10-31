@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../features/design_gallery/presentation/design_gallery_screen.dart';
 import '../features/design_gallery/presentation/library_database_debug_screen.dart';
 import '../features/design_gallery/presentation/media_store_debug_screen.dart';
+import '../features/equalizer/presentation/equalizer_screen.dart';
 import '../features/favorites/presentation/liked_songs_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/library/presentation/album_detail_screen.dart';
@@ -33,6 +34,7 @@ abstract final class AppRoutes {
   static const onboarding = '/onboarding';
   static const settings = '/settings';
   static const stats = '/stats';
+  static const equalizer = '/equalizer';
   static const designGallery = '/settings/gallery';
   static const mediaStoreDebug = '/settings/media-store';
   static const libraryDatabaseDebug = '/settings/library-database';
@@ -210,6 +212,11 @@ GoRouter createRouter({
         ],
       ),
       // Full-screen routes above the shell (no bottom nav).
+      GoRoute(
+        path: AppRoutes.equalizer,
+        parentNavigatorKey: rootKey,
+        builder: (context, state) => const EqualizerScreen(),
+      ),
       GoRoute(
         path: AppRoutes.stats,
         parentNavigatorKey: rootKey,

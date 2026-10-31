@@ -1,6 +1,7 @@
 package com.mmi.haraplay.playback
 
 import android.app.Service
+import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
@@ -20,7 +21,10 @@ import io.flutter.plugin.common.MethodChannel
  * reflection, and if that ever fails this does nothing (the notification
  * then simply stays, as before).
  */
-class PlaybackForeground(messenger: BinaryMessenger) : MethodChannel.MethodCallHandler {
+class PlaybackForeground(
+    private val context: Context,
+    messenger: BinaryMessenger,
+) : MethodChannel.MethodCallHandler {
     private val channel = MethodChannel(messenger, "haraplay/playback").also {
         it.setMethodCallHandler(this)
     }
@@ -31,6 +35,7 @@ class PlaybackForeground(messenger: BinaryMessenger) : MethodChannel.MethodCallH
     ) {
         when (call.method) {
             "releaseForeground" -> result.success(releaseForeground())
+            "audioEffects" -> result.success(AudioEffectsProbe.probe(context))
             else -> result.notImplemented()
         }
     }

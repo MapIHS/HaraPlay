@@ -15,7 +15,7 @@ class MainActivity : AudioServiceActivity() {
         mediaStore?.dispose()
         mediaStore = MediaStorePlugin(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         playback?.dispose()
-        playback = PlaybackForeground(flutterEngine.dartExecutor.binaryMessenger)
+        playback = PlaybackForeground(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {

@@ -114,6 +114,9 @@ void main() {
   ) async {
     await pumpHaraApp(tester);
     await tapAndSettle(tester, find.byTooltip('Settings'));
+    // Below the fold on the test screen.
+    await tester.ensureVisible(find.text('Design gallery'));
+    await tester.pumpAndSettle();
     await tapAndSettle(tester, find.text('Design gallery'));
     expect(find.text('Colours'), findsOneWidget);
   });
