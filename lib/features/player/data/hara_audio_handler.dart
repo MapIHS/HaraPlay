@@ -292,7 +292,12 @@ class HaraAudioHandler extends BaseAudioHandler
 
   /// Loads the queue saved by the previous run, paused at the saved song
   /// and position. Songs deleted since then are skipped.
-  Future<void> restore() async {
+  Future<void> restore() => _restoring = _restore();
+
+  /// Set while [restore] runs, so [dropMissing] waits for the queue.
+  Future<void>? _restoring;
+
+  Future<void> _restore() async {
     final store = _queueStore;
     final saved = await store?.load();
     if (store == null || saved == null || _songs.isNotEmpty) return;
@@ -316,6 +321,50 @@ class HaraAudioHandler extends BaseAudioHandler
     );
     _lastSavedPosition = plan.position;
     _publishStatus();
+  }
+
+  @override
+  Future<void> dropMissing() async {
+    await _restoring;
+    final store = _queueStore;
+    if (store == null || _songs.isEmpty) return;
+    final existing = await store.songsByIds([for (final s in _songs) s.id]);
+    final missing = [
+      for (var i = 0; i < _songs.length; i++)
+        if (!existing.containsKey(_songs[i].id)) i,
+    ];
+    if (missing.isEmpty) return;
+
+    final current = _current;
+    if (!missing.contains(current)) {
+      await _edit(() async {
+        for (final i in missing.reversed) {
+          _queue.removeAt(i);
+          await _player.removeAudioSourceAt(i);
+        }
+      });
+      return;
+    }
+
+    for (final i in missing.reversed) {
+      _queue.removeAt(i);
+    }
+    _songs = _queue.songs;
+    await _player.pause();
+    if (_songs.isEmpty) {
+      await _player.clearAudioSources();
+    } else {
+      // The first remaining song at or after the removed current one.
+      final before = missing.where((i) => i < current).length;
+      await _player.setAudioSources(
+        _sourcesFor(_songs),
+        initialIndex: (current - before).clamp(0, _songs.length - 1),
+        initialPosition: Duration.zero,
+      );
+    }
+    _publishQueue();
+    _publishStatus();
+    unawaited(_saveQueue());
   }
 
   @override

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/features/library/presentation/album_detail_screen.dart';
+import 'package:haraplay/features/player/presentation/mini_player.dart';
+import 'package:haraplay/features/player/presentation/now_playing_screen.dart';
 import 'package:haraplay/features/search/presentation/search_screen.dart';
 
 import '../helpers/fakes.dart';
@@ -273,6 +275,24 @@ void main() {
       await tester.pageBack();
       await settleDb(tester);
       expect(find.text('ALBUMS · 1'), findsOneWidget);
+    });
+
+    testWidgets('closing a sheet in Now Playing does not reopen the '
+        'keyboard for the search field behind it', (tester) async {
+      final player = await openSearch(tester);
+      await type(tester, 'drive');
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      await tapAndSettle(tester, find.text('Drive Home'));
+      await tapAndSettle(tester, find.byType(MiniPlayer));
+      expect(tester.testTextInput.isVisible, isFalse);
+      await tapAndSettle(tester, find.textContaining('Up next'));
+      await tester.binding.handlePopRoute();
+      await settleDb(tester);
+
+      expect(find.byType(NowPlayingScreen), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(player.played, isNotEmpty);
     });
 
     testWidgets('recent searches: newest first, remove and clear', (

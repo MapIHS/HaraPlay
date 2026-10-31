@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/browse_dao.dart';
 import '../../../core/database/daos/library_dao.dart';
 import '../../../core/storage/preferences.dart';
+import '../../player/presentation/player_providers.dart';
 import '../../settings/presentation/min_song_length_controller.dart';
 import '../data/library_sync_service.dart';
 import '../domain/library_models.dart';
@@ -27,6 +30,10 @@ class LibrarySyncController extends Notifier<AsyncValue<SyncResult?>> {
     try {
       final result = await ref.read(librarySyncServiceProvider).sync();
       state = AsyncData(result);
+      // The queue may still hold songs removed by this or an earlier sync
+      // (it is restored before the first sync of a launch). Cheap: one
+      // query for the queued IDs.
+      unawaited(ref.read(playerProvider).dropMissing());
       return result;
     } catch (error, stack) {
       state = AsyncError<SyncResult?>(error, stack);

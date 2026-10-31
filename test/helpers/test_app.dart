@@ -9,6 +9,7 @@ import 'package:haraplay/core/storage/preferences.dart';
 import 'package:haraplay/core/theme/hara_theme.dart';
 import 'package:haraplay/features/library/data/library_sync_service.dart';
 import 'package:haraplay/features/library/data/tag_enrichment_service.dart';
+import 'package:haraplay/features/lyrics/presentation/lyrics_providers.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 import 'package:haraplay/features/onboarding/presentation/onboarding_controllers.dart';
 import 'package:haraplay/features/player/presentation/player_providers.dart';
@@ -64,6 +65,7 @@ Future<void> pumpHaraApp(
   int sdkInt = 34,
   AppDatabase? database,
   FakePlayer? player,
+  FakeLyricsLoader? lyrics,
 }) async {
   final preferences = await createTestPreferences(prefs);
   final db = database ?? createTestDatabase();
@@ -85,6 +87,7 @@ Future<void> pumpHaraApp(
         appDatabaseProvider.overrideWithValue(db),
         artworkCacheProvider.overrideWithValue(FakeArtworkCache()),
         playerProvider.overrideWithValue(player ?? FakePlayer()),
+        lyricsLoaderProvider.overrideWithValue(lyrics ?? FakeLyricsLoader()),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

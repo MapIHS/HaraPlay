@@ -10,6 +10,8 @@ import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
 import 'package:haraplay/features/library/data/file_tag_reader.dart';
 import 'package:haraplay/features/library/data/tag_merge.dart';
+import 'package:haraplay/features/lyrics/data/lyrics_loader.dart';
+import 'package:haraplay/features/lyrics/domain/lyrics.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 import 'package:haraplay/features/player/domain/player.dart';
 import 'package:haraplay/features/player/domain/queue_model.dart';
@@ -295,9 +297,30 @@ class FakePlayer implements Player {
     _emitQueue();
   }
 
+  int dropMissingCalls = 0;
+
+  @override
+  Future<void> dropMissing() async => dropMissingCalls++;
+
   @override
   Future<void> skipTo(int index) async {
     _index = index;
     _emitQueue();
+  }
+}
+
+/// Lyrics by audio path, answered at once (the real loader uses an
+/// isolate, which the widget-test clock never lets finish).
+class FakeLyricsLoader extends LyricsLoader {
+  FakeLyricsLoader([this.byPath = const {}]);
+
+  final Map<String, String> byPath;
+
+  @override
+  Future<Lyrics?> load(String audioPath) async {
+    final text = byPath[audioPath];
+    if (text == null) return null;
+    final lyrics = parseLyrics(text);
+    return lyrics.isEmpty ? null : lyrics.withSource(LyricsSource.sidecar);
   }
 }

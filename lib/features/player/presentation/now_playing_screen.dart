@@ -11,6 +11,8 @@ import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_button.dart';
 import '../../../core/widgets/hara_icon_button.dart';
 import '../../../core/widgets/heart_mark.dart';
+import '../../lyrics/presentation/lyrics_providers.dart';
+import '../../lyrics/presentation/lyrics_view.dart';
 import '../../playlists/presentation/playlist_providers.dart';
 import '../domain/queue_song.dart';
 import 'player_providers.dart';
@@ -41,6 +43,26 @@ String playingFrom(PlaybackStatus status) {
     PlaySource.search => '$kind · "$label"',
     _ => '$kind · $label',
   };
+}
+
+/// The artwork / lyrics area, measured when lyrics are switched on.
+final _artworkAreaKey = GlobalKey(debugLabel: 'now-playing-artwork');
+
+/// Below this height (very large text on a small phone) the lyrics panel
+/// would be unreadable, so the lyrics open full screen instead.
+const _minLyricsPanelHeight = 120.0;
+
+void _toggleLyrics(BuildContext context, WidgetRef ref, QueueSong song) {
+  final showing = ref.read(showLyricsProvider);
+  final height = _artworkAreaKey.currentContext?.size?.height ?? 0;
+  if (!showing && height < _minLyricsPanelHeight) {
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute<void>(builder: (_) => LyricsScreen(song: song)));
+    return;
+  }
+  ref.read(showLyricsProvider.notifier).toggle();
 }
 
 /// The full player inside the expanded `PlayerPanel`.
@@ -102,13 +124,16 @@ class NowPlayingScreen extends ConsumerWidget {
           ),
           Expanded(
             child: Padding(
+              key: _artworkAreaKey,
               padding: const EdgeInsets.fromLTRB(
                 HaraSpacing.xl,
                 HaraSpacing.lg,
                 HaraSpacing.xl,
                 HaraSpacing.lg,
               ),
-              child: Center(child: _SwipeableArtwork(song: song)),
+              child: ref.watch(showLyricsProvider)
+                  ? LyricsPanel(song: song)
+                  : Center(child: _SwipeableArtwork(song: song)),
             ),
           ),
           Padding(
@@ -141,22 +166,36 @@ class NowPlayingScreen extends ConsumerWidget {
           const SizedBox(height: HaraSpacing.md),
           _TransportControls(status: status),
           const SizedBox(height: HaraSpacing.sm),
-          // Bottom actions: sleep timer and the queue. They wrap onto two
-          // lines when a long countdown chip doesn't fit next to the queue.
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: HaraSpacing.sm,
-            children: [
-              const SleepTimerButton(),
-              HaraButton(
-                label: 'Up next · ${status.upcomingCount}',
-                icon: HaraIcons.listMusic,
-                variant: HaraButtonVariant.ghost,
-                size: HaraButtonSize.small,
-                onPressed: () => showQueueSheet(context),
-              ),
-            ],
+          // Bottom actions on one line: sleep timer, the queue, lyrics.
+          // The queue label gives way first if space runs out.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.sm),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Flexible(child: SleepTimerButton()),
+                const SizedBox(width: HaraSpacing.xs),
+                Flexible(
+                  flex: 2,
+                  child: HaraButton(
+                    label: 'Up next · ${status.upcomingCount}',
+                    icon: HaraIcons.listMusic,
+                    variant: HaraButtonVariant.ghost,
+                    size: HaraButtonSize.small,
+                    onPressed: () => showQueueSheet(context),
+                  ),
+                ),
+                const SizedBox(width: HaraSpacing.xs),
+                HaraIconButton(
+                  icon: HaraIcons.micVocal,
+                  tooltip: ref.watch(showLyricsProvider)
+                      ? 'Hide lyrics'
+                      : 'Lyrics',
+                  selected: ref.watch(showLyricsProvider),
+                  onPressed: () => _toggleLyrics(context, ref, song),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: HaraSpacing.sm),
         ],

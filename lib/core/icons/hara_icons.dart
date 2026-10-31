@@ -36,6 +36,7 @@ abstract final class HaraIcons {
   static const IconData listMusic = IconData(0xe2e0, fontFamily: _family);
   static const IconData listPlus = IconData(0xe23f, fontFamily: _family);
   static const IconData listStart = IconData(0xe2e1, fontFamily: _family);
+  static const IconData maximize2 = IconData(0xe113, fontFamily: _family);
   static const IconData micVocal = IconData(0xe349, fontFamily: _family);
   static const IconData moon = IconData(0xe11e, fontFamily: _family);
   static const IconData music = IconData(0xe122, fontFamily: _family);
@@ -91,6 +92,7 @@ abstract final class HaraIcons {
     'list-music': listMusic,
     'list-plus': listPlus,
     'list-start': listStart,
+    'maximize-2': maximize2,
     'mic-vocal': micVocal,
     'moon': moon,
     'music': music,

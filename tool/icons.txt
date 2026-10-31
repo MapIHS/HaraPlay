@@ -25,6 +25,7 @@ list-end
 list-music
 list-plus
 list-start
+maximize-2
 mic-vocal
 moon
 music

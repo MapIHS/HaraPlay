@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 import 'package:haraplay/core/database/app_database.dart';
+import 'package:haraplay/features/lyrics/presentation/lyrics_view.dart';
 import 'package:haraplay/features/player/domain/queue_song.dart';
 import 'package:haraplay/features/player/presentation/mini_player.dart';
 import 'package:haraplay/features/player/presentation/now_playing_screen.dart';
@@ -185,6 +186,16 @@ void main() {
     await tap(tester, find.text('End of this song'));
     await tap(tester, find.text('End of song'));
     await back(tester);
+    // Lyrics in place of the artwork, then full screen. With too little
+    // room (very large text) the button opens them full screen directly.
+    await tap(tester, find.byTooltip('Lyrics'));
+    if (find.byType(LyricsScreen).evaluate().isEmpty) {
+      await tap(tester, find.byTooltip('Full-screen lyrics'));
+      await back(tester);
+      await tap(tester, find.byTooltip('Hide lyrics'));
+    } else {
+      await back(tester);
+    }
     await tap(tester, find.byTooltip('Close player'));
 
     // Settings.
@@ -209,7 +220,17 @@ void main() {
         tester.platformDispatcher.clearTextScaleFactorTestValue();
       });
       final player = FakePlayer();
-      await pumpHaraApp(tester, database: await library(), player: player);
+      await pumpHaraApp(
+        tester,
+        database: await library(),
+        player: player,
+        lyrics: FakeLyricsLoader({
+          // The first song in the queue (ordered by ID).
+          '/storage/emulated/0/Music/song1.mp3':
+              '[00:00.00]A long first line of lyrics that wraps over several '
+              'lines at large text sizes\n[00:05.00]\n[00:09.00]Short one',
+        }),
+      );
       await tour(tester, player);
     });
   }

@@ -83,6 +83,10 @@ class _PlayerPanelState extends ConsumerState<PlayerPanel>
   }
 
   void _settle(double target, {double velocity = 0}) {
+    // Opening the player takes focus away from any text field behind it
+    // (e.g. Search), so closing a sheet in Now Playing can't hand focus
+    // back to it and bring up the keyboard.
+    if (target == 1) FocusManager.instance.primaryFocus?.unfocus();
     if (MediaQuery.disableAnimationsOf(context)) {
       _progress.value = target;
       return;

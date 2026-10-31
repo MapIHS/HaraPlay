@@ -53,6 +53,12 @@ abstract interface class Player {
   /// Plays the entry at [index] from its start.
   Future<void> skipTo(int index);
 
+  /// Drops queued songs whose files are gone; called after a library sync
+  /// (the queue may have been restored before the sync removed them). The
+  /// current song keeps playing if it still exists; if it is gone, the
+  /// queue moves on to the next remaining song, paused.
+  Future<void> dropMissing();
+
   // Sleep timer.
 
   /// The sleep timer's state, current state first.
