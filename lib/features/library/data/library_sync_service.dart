@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/artwork/artwork_cache.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/library_dao.dart';
 import '../../../core/platform/media_source.dart';
@@ -12,11 +13,19 @@ import 'tag_enrichment_service.dart';
 /// Mirrors MediaStore into the database, then starts the background tag
 /// pass without waiting for it.
 class LibrarySyncService {
-  LibrarySyncService(this._source, this._dao, this._enrichment);
+  LibrarySyncService(
+    this._source,
+    this._dao,
+    this._enrichment, [
+    this._artwork,
+  ]);
 
   final MediaSource _source;
   final LibraryDao _dao;
   final TagEnrichmentService _enrichment;
+
+  /// Cleaned of covers for deleted or changed songs after each sync.
+  final ArtworkCache? _artwork;
 
   Future<SyncResult>? _running;
 
@@ -37,6 +46,15 @@ class LibrarySyncService {
       );
     }
     unawaited(_enrichment.run());
+    final artwork = _artwork;
+    if (artwork != null) {
+      unawaited(
+        artwork.prune({
+          for (final song in scanned)
+            song.id: song.dateModified.millisecondsSinceEpoch,
+        }),
+      );
+    }
     return result;
   }
 }
@@ -56,5 +74,6 @@ final librarySyncServiceProvider = Provider<LibrarySyncService>(
     ref.watch(mediaSourceProvider),
     ref.watch(libraryDaoProvider),
     ref.watch(tagEnrichmentServiceProvider),
+    ref.watch(artworkCacheProvider),
   ),
 );

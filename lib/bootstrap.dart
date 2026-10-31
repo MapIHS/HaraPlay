@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -36,17 +37,37 @@ Future<void> bootstrap() async {
   final artwork = ArtworkCache(channel, getApplicationCacheDirectory);
   final handler = await AudioService.init(
     builder: () => HaraAudioHandler(
+      // Unplayable queue entries are skipped by HaraAudioHandler itself.
       player: AudioPlayer(),
       recorder: PlayEventRecorder(database.playEventsDao),
       artwork: artwork,
       queueStore: database.queueStateDao,
+      // Overridable for device checks:
+      // --dart-define=HARAPLAY_PAUSED_TIMEOUT_S=30
+      releaseForeground: () async {
+        try {
+          await const MethodChannel('haraplay/playback')
+              .invokeMethod<bool>('releaseForeground');
+        } on PlatformException {
+          // Best effort: the notification then stays until the app closes.
+        }
+      },
+      pausedTimeout: const Duration(
+        seconds: int.fromEnvironment(
+          'HARAPLAY_PAUSED_TIMEOUT_S',
+          defaultValue: 600,
+        ),
+      ),
     ),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.mmi.haraplay.playback',
       androidNotificationChannelName: 'Playback',
       androidNotificationChannelDescription: 'Shows what is playing.',
       androidNotificationIcon: 'drawable/ic_stat_haraplay',
-      androidStopForegroundOnPause: true,
+      // Stay in the foreground while paused: ColorOS hides a paused
+      // notification from the lock screen otherwise. HaraAudioHandler
+      // stops the service after a while paused (pausedTimeout).
+      androidStopForegroundOnPause: false,
     ),
   );
   await handler.configureSession();
@@ -68,10 +89,24 @@ Future<void> bootstrap() async {
 
   // Pick up files added or removed since the last launch. Onboarding runs
   // its own first sync; failures are kept in the controller's state.
-  final onboarded = OnboardingRepository(preferences).readCompleted();
-  if (access == MediaAccess.granted && onboarded) {
+  var started = false;
+  void startLibrary() {
+    if (started) return;
+    started = true;
     // Last session's queue comes back paused, at the saved position.
     handler.restore().ignore();
-    container.read(librarySyncControllerProvider.notifier).sync().ignore();
+    if (OnboardingRepository(preferences).readCompleted()) {
+      container.read(librarySyncControllerProvider.notifier).sync().ignore();
+    }
+  }
+
+  if (access == MediaAccess.granted) {
+    startLibrary();
+  } else {
+    // Access was revoked (or never given): once the user grants it again,
+    // bring back the queue and rescan, as a normal launch would.
+    container.listen(mediaAccessProvider, (_, next) {
+      if (next == MediaAccess.granted) startLibrary();
+    });
   }
 }

@@ -1,4 +1,6 @@
-import 'package:flutter/animation.dart';
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
 
 /// 4-pt spacing scale.
 abstract final class HaraSpacing {
@@ -53,5 +55,29 @@ abstract final class HaraSizes {
   static const double icon = 24;
   static const double iconTransport = 32;
   static const double songTileHeight = 64;
+
+  /// One text line of [fontSize] / [lineHeight] at the user's text size.
+  static double _line(TextScaler scaler, double fontSize, double lineHeight) =>
+      scaler.scale(fontSize) * lineHeight / fontSize;
+
+  /// A two-line row (song, browse and queue rows): [songTileHeight] at the
+  /// default text size, taller when the user enlarges text.
+  static double rowHeightOf(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    return math.max(
+      songTileHeight,
+      _line(scaler, 16, 20) + 2 + _line(scaler, 13, 18) + 24,
+    );
+  }
+
+  /// The title and subtitle under a card's artwork (album and song cards).
+  static double cardLabelHeightOf(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    return math.max(
+      52,
+      HaraSpacing.sm + _line(scaler, 14, 18) + _line(scaler, 13, 18) + 6,
+    );
+  }
+
   static const double songTileArtwork = 48;
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Saffron, the brand fill (lib/core/theme/palettes.dart). -->
+    <color name="ic_launcher_background">#FFC738</color>
+</resources>

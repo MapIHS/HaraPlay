@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Android 13+ themed icon: the bars as one solid silhouette. -->
+  <g transform="translate(256 256) scale(0.667) translate(-256 -256)" fill="#000000">
+    <rect x="104" y="136" width="48" height="240" rx="14"/>
+    <rect x="166.5" y="208" width="50" height="96" rx="14"/>
+    <rect x="231" y="174" width="50" height="164" rx="14"/>
+    <rect x="295.5" y="218" width="50" height="76" rx="14"/>
+    <rect x="360" y="136" width="48" height="240" rx="14"/>
+  </g>
+</svg>

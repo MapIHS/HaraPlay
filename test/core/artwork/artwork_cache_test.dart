@@ -110,4 +110,30 @@ void main() {
     expect(ArtworkCache.bucketFor(96), 96);
     expect(ArtworkCache.bucketFor(5000), 768);
   });
+
+  test('prune removes covers of deleted and changed songs only', () async {
+    final source = _CountingSource({
+      1: Uint8List.fromList([1]),
+      2: Uint8List.fromList([2]),
+    });
+    final cache = ArtworkCache(source, () async => temp);
+    await cache.load(request(1));
+    await cache.load(request(2));
+    await cache.load(request(3)); // no artwork: a .none marker
+    File('${temp.path}/artwork/notes.txt').writeAsStringSync('keep');
+
+    // Song 2's file changed (version 5); song 3 was deleted.
+    final removed = await cache.prune({1: 1, 2: 5});
+    expect(removed, 2);
+    final left = [
+      for (final f in Directory('${temp.path}/artwork').listSync())
+        f.uri.pathSegments.last,
+    ]..sort();
+    expect(left, ['1_192_1.jpg', 'notes.txt']);
+
+    // A pruned "no artwork" entry is asked for again.
+    source.calls.clear();
+    await cache.load(request(3));
+    expect(source.calls, [3]);
+  });
 }

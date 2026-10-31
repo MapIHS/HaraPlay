@@ -82,7 +82,7 @@ class _LikedList extends ConsumerWidget {
           SliverList.builder(
             itemCount: songs.length,
             itemBuilder: (context, i) => SizedBox(
-              height: HaraSizes.songTileHeight,
+              height: HaraSizes.rowHeightOf(context),
               child: LibrarySongTile(
                 song: songs[i],
                 onTap: () => play(index: i),

@@ -37,7 +37,7 @@ class GenreDetailScreen extends ConsumerWidget {
             shuffleSongs(ref, songs, source: PlaySource.genre, label: name),
       ),
       songList: (songs) => SliverFixedExtentList(
-        itemExtent: HaraSizes.songTileHeight,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate(
           (context, i) => LibrarySongTile(
             song: songs[i],

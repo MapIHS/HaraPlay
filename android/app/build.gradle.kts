@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Release signing comes from android/key.properties, which points at the
+// keystore outside the repository. Both are git-ignored and must never be
+// committed (see docs/PLAN.md, M11).
+val keyProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -28,11 +38,22 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (keyProperties.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keyProperties.getProperty("storeFile"))
+                storePassword = keyProperties.getProperty("storePassword")
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Debug-signed until the HaraPlay release keystore is set up (M11).
-            // The keystore and key.properties must never be committed.
-            signingConfig = signingConfigs.getByName("debug")
+            // Without key.properties the release APK stays unsigned (it
+            // won't install) instead of silently being debug-signed.
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 }

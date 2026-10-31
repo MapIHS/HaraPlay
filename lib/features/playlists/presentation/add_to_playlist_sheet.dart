@@ -132,7 +132,7 @@ class _PickerRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: LibraryRow.height,
+          height: HaraSizes.rowHeightOf(context),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.gutter),
             child: Row(

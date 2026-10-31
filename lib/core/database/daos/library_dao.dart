@@ -123,19 +123,22 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
       var added = 0;
       var updated = 0;
       final toWrite = <SongRow>[];
-      for (final song in incomingById.values) {
-        final fallback = fallbacks[song.id];
-        final row = songRowFrom(
-          song,
-          fileTags:
-              fallback != null &&
-                  !fallback.failed &&
-                  fallback.sourceDateModified ==
-                      song.dateModified.millisecondsSinceEpoch
-              ? tagsOfFallback(fallback)
-              : null,
-        );
-        final before = stored[song.id];
+      final rows = withMergedAlbumIds([
+        for (final song in incomingById.values)
+          songRowFrom(
+            song,
+            fileTags: switch (fallbacks[song.id]) {
+              final f?
+                  when !f.failed &&
+                      f.sourceDateModified ==
+                          song.dateModified.millisecondsSinceEpoch =>
+                tagsOfFallback(f),
+              _ => null,
+            },
+          ),
+      ]);
+      for (final row in rows) {
+        final before = stored[row.id];
         if (before == null) {
           added++;
         } else if (before.copyWith(id: row.id) != row) {
@@ -225,7 +228,20 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
         await update(songs).replace(merged.toCompanion(false));
       }
     }
+    await _mergeAlbumIds();
   });
+
+  /// The SQL form of [withMergedAlbumIds], for after the tag pass renamed
+  /// albums in place.
+  Future<void> _mergeAlbumIds() => customUpdate(
+    'UPDATE songs SET album_id = ('
+    '  SELECT MIN(s2.album_id) FROM songs s2 '
+    '  WHERE s2.folder_path = songs.folder_path '
+    '  AND s2.album = songs.album COLLATE NOCASE'
+    ') WHERE album IS NOT NULL AND album_id IS NOT NULL',
+    updates: {songs},
+    updateKind: UpdateKind.update,
+  );
 
   Selectable<LibraryCounts> _counts(int minDurationMs) =>
       customSelect(
@@ -265,6 +281,31 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
         .map((r) => (r.readTable(songs), r.readTableOrNull(songTagFallbacks)))
         .watch();
   }
+}
+
+/// [rows] with one album ID per album: songs in the same folder whose album
+/// names match (ignoring case) share the lowest of their IDs. MediaStore
+/// splits an album when one file's tags were decoded differently (e.g. a
+/// Latin-1 tag), even after the tag pass fixed the name.
+List<SongRow> withMergedAlbumIds(List<SongRow> rows) {
+  final lowest = <(String, String), int>{};
+  for (final row in rows) {
+    final album = row.album;
+    final id = row.albumId;
+    if (album == null || id == null) continue;
+    final key = (row.folderPath, album.toLowerCase());
+    final current = lowest[key];
+    if (current == null || id < current) lowest[key] = id;
+  }
+  return [
+    for (final row in rows)
+      switch ((row.album, row.albumId)) {
+        (final album?, final _?) => row.copyWith(
+          albumId: Value(lowest[(row.folderPath, album.toLowerCase())]),
+        ),
+        _ => row,
+      },
+  ];
 }
 
 /// The songs-table row for a MediaStore song, merged with [fileTags].

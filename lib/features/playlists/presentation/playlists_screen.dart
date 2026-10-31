@@ -12,7 +12,6 @@ import '../../../core/widgets/hara_icon_button.dart';
 import '../../../core/widgets/hara_sheet.dart';
 import '../../../core/widgets/heart_mark.dart';
 import '../../../core/widgets/section_header.dart';
-import '../../library/presentation/widgets/library_row.dart';
 import '../domain/playlist_models.dart';
 import 'playlist_cover.dart';
 import 'playlist_dialogs.dart';
@@ -276,7 +275,7 @@ class _PlaylistRow extends StatelessWidget {
         onTap: onTap,
         onLongPress: onMore,
         child: SizedBox(
-          height: LibraryRow.height,
+          height: HaraSizes.rowHeightOf(context),
           child: Padding(
             padding: const EdgeInsets.only(
               left: HaraSpacing.gutter,

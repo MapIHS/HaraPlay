@@ -46,7 +46,7 @@ class FolderDetailScreen extends ConsumerWidget {
         ),
       ),
       songList: (songs) => SliverFixedExtentList(
-        itemExtent: HaraSizes.songTileHeight,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate(
           (context, i) => LibrarySongTile(
             song: songs[i],

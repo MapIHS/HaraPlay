@@ -55,12 +55,18 @@ class HaraChip extends StatelessWidget {
               Text(value!, style: HaraTextStyles.of(context).monoStrong),
               const SizedBox(width: HaraSpacing.xs + 2),
             ],
-            Text(
-              label.toUpperCase(),
-              style: textTheme.labelMedium!.copyWith(
-                color: value == null
-                    ? colors.foreground
-                    : colors.mutedForeground,
+            // Shrinks with an ellipsis when large text makes the chip
+            // wider than the screen.
+            Flexible(
+              child: Text(
+                label.toUpperCase(),
+                style: textTheme.labelMedium!.copyWith(
+                  color: value == null
+                      ? colors.foreground
+                      : colors.mutedForeground,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

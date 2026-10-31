@@ -82,6 +82,36 @@ class ArtworkCache {
     return await file.exists() ? file : null;
   }
 
+  /// Deletes cached files of songs that are gone, or whose file changed
+  /// since ([versions]: song ID → current date_modified). Returns how many
+  /// files were removed.
+  Future<int> prune(Map<int, int> versions) async {
+    final Directory dir;
+    try {
+      dir = await _dir;
+    } on FileSystemException {
+      return 0;
+    }
+    var removed = 0;
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      final name = entity.uri.pathSegments.last;
+      // "<songId>_<size>_<version>.jpg" or ".none"
+      final match = RegExp(r'^(\d+)_\d+_(\d+)\.(jpg|none)$').firstMatch(name);
+      if (match == null) continue;
+      final songId = int.parse(match[1]!);
+      if (versions[songId] == int.parse(match[2]!)) continue;
+      try {
+        await entity.delete();
+        removed++;
+      } on FileSystemException {
+        // Best-effort, like the cache itself.
+      }
+      _missing.remove(name.substring(0, name.lastIndexOf('.')));
+    }
+    return removed;
+  }
+
   Future<Uint8List?> _load(ArtworkRequest request) async {
     final key = request.cacheKey;
     final dir = await _dir;

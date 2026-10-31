@@ -114,6 +114,9 @@ class FakeArtworkCache extends ArtworkCache {
     requests.add(request);
     return null;
   }
+
+  @override
+  Future<int> prune(Map<int, int> versions) async => 0;
 }
 
 /// Records what the UI asks the player to do. Queue edits run on a real

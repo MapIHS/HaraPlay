@@ -16,8 +16,6 @@ class LibraryRow extends StatelessWidget {
     required this.onTap,
   });
 
-  static const double height = 64;
-
   final Widget leading;
   final String title;
   final String subtitle;
@@ -34,7 +32,7 @@ class LibraryRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: height,
+          height: HaraSizes.rowHeightOf(context),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.gutter),
             child: Row(

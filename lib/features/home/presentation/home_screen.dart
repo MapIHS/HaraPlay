@@ -194,8 +194,10 @@ class _RowHint extends StatelessWidget {
 }
 
 /// Height of a horizontal card row: artwork, shadow room and two text lines.
-const double _cardRowHeight =
-    HomeScreen.cardWidth + HaraShadow.offset + HaraSpacing.sm + 44;
+double _cardRowHeight(BuildContext context) =>
+    HomeScreen.cardWidth +
+    HaraShadow.offset +
+    HaraSizes.cardLabelHeightOf(context);
 
 class _RecentlyPlayedRow extends ConsumerWidget {
   const _RecentlyPlayedRow();
@@ -203,7 +205,7 @@ class _RecentlyPlayedRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final songs = ref.watch(recentlyPlayedProvider).value;
-    if (songs == null) return const SizedBox(height: _cardRowHeight);
+    if (songs == null) return SizedBox(height: _cardRowHeight(context));
     if (songs.isEmpty) {
       return const _RowHint(
         icon: HaraIcons.history,
@@ -211,7 +213,7 @@ class _RecentlyPlayedRow extends ConsumerWidget {
       );
     }
     return SizedBox(
-      height: _cardRowHeight,
+      height: _cardRowHeight(context),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.gutter),
@@ -243,8 +245,10 @@ class _SongCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final subtitle = song.artist ?? songSubtitle(song, showAlbum: false);
     return Semantics(
+      container: true,
       button: true,
       label: '${song.title}, $subtitle',
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
@@ -326,10 +330,10 @@ class _RecentlyAddedRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final albums = ref.watch(recentlyAddedAlbumsProvider).value;
     if (albums == null || albums.isEmpty) {
-      return const SizedBox(height: _cardRowHeight);
+      return SizedBox(height: _cardRowHeight(context));
     }
     return SizedBox(
-      height: _cardRowHeight + 8,
+      height: _cardRowHeight(context) + 8,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.gutter),

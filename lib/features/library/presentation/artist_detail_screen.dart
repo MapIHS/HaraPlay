@@ -68,7 +68,10 @@ class ArtistDetailScreen extends ConsumerWidget {
           const SliverToBoxAdapter(child: SectionHeader(title: 'Albums')),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: _albumCardWidth + HaraSpacing.sm + AlbumCard.labelHeight,
+              height:
+                  _albumCardWidth +
+                  HaraSpacing.sm +
+                  HaraSizes.cardLabelHeightOf(context),
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(
@@ -100,7 +103,7 @@ class ArtistDetailScreen extends ConsumerWidget {
         const SliverToBoxAdapter(child: SectionHeader(title: 'Songs')),
       ],
       songList: (songs) => SliverFixedExtentList(
-        itemExtent: HaraSizes.songTileHeight,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate(
           (context, i) => LibrarySongTile(
             song: songs[i],

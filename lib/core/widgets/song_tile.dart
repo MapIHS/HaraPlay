@@ -78,7 +78,7 @@ class SongTile extends StatelessWidget {
     onTap: onTap,
     onLongPress: onLongPress,
     child: SizedBox(
-      height: HaraSizes.songTileHeight,
+      height: HaraSizes.rowHeightOf(context),
       child: Padding(
         padding: const EdgeInsets.only(
           left: HaraSpacing.gutter,

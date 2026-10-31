@@ -80,7 +80,7 @@ class SongsTab extends ConsumerWidget {
       emptyTitle: 'No songs',
       emptyMessage: 'Songs on this phone will appear here.',
       sliver: (songs) => SliverFixedExtentList(
-        itemExtent: HaraSizes.songTileHeight,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate(
           (context, i) => LibrarySongTile(
             song: songs[i],
@@ -135,7 +135,7 @@ class AlbumsTab extends ConsumerWidget {
                 mainAxisExtent:
                     cellWidth +
                     HaraSpacing.sm +
-                    AlbumCard.labelHeight -
+                    HaraSizes.cardLabelHeightOf(context) -
                     HaraShadow.offset,
               ),
               delegate: SliverChildBuilderDelegate(
@@ -178,7 +178,7 @@ class ArtistsTab extends ConsumerWidget {
       emptyTitle: 'No artists',
       emptyMessage: 'Artists appear here once you have music.',
       sliver: (artists) => SliverFixedExtentList(
-        itemExtent: LibraryRow.height,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate((context, i) {
           final artist = artists[i];
           return LibraryRow(
@@ -221,7 +221,7 @@ class FoldersTab extends ConsumerWidget {
       emptyTitle: 'No folders',
       emptyMessage: 'Folders with music appear here.',
       sliver: (folders) => SliverFixedExtentList(
-        itemExtent: LibraryRow.height,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate((context, i) {
           final folder = folders[i];
           return LibraryRow(
@@ -260,7 +260,7 @@ class GenresTab extends ConsumerWidget {
       emptyMessage:
           'None of your songs has a genre tag. They are all under Songs.',
       sliver: (genres) => SliverFixedExtentList(
-        itemExtent: LibraryRow.height,
+        itemExtent: HaraSizes.rowHeightOf(context),
         delegate: SliverChildBuilderDelegate((context, i) {
           final genre = genres[i];
           return LibraryRow(

@@ -60,6 +60,59 @@ void main() {
     expect(song.year, 2015);
   });
 
+  test('an album split by a mis-decoded tag is merged once the tag pass '
+      'fixes the name, and stays merged on the next sync', () async {
+    // MediaStore read song 2's Latin-1 album tag wrongly and gave it its
+    // own album ID; song 3 is a same-named album in another folder.
+    final scan = [
+      mediaSong(
+        1,
+        album: 'Ünïcode Dreams',
+        albumId: 40,
+        path: '/m/uni/1.mp3',
+        genre: 'Pop',
+        track: 1,
+        year: 2020,
+      ),
+      mediaSong(
+        2,
+        album: 'Ûnîcode Dreams',
+        albumId: 41,
+        path: '/m/uni/2.mp3',
+        genre: 'Pop',
+        track: 2,
+        year: 2020,
+      ),
+      mediaSong(
+        3,
+        album: 'Ünïcode Dreams',
+        albumId: 42,
+        path: '/m/other/3.mp3',
+        genre: 'Pop',
+        track: 1,
+        year: 2020,
+      ),
+    ];
+    await db.libraryDao.applyScan(scan);
+    final service = TagEnrichmentService(
+      db.libraryDao,
+      reader: FakeFileTagReader({
+        '/m/uni/2.mp3': const SongTags(album: 'Ünïcode Dreams'),
+      }),
+    );
+    addTearDown(service.dispose);
+    await service.run();
+
+    Future<Map<int, int?>> albumIds() async => {
+      for (final s in await db.select(db.songs).get()) s.id: s.albumId,
+    };
+    expect(await albumIds(), {1: 40, 2: 40, 3: 42});
+
+    final again = await db.libraryDao.applyScan(scan);
+    expect(again.updated, 0);
+    expect(await albumIds(), {1: 40, 2: 40, 3: 42});
+  });
+
   test('concurrent sync calls share one run', () async {
     final source = FakeMediaSource([mediaSong(1)]);
     final enrichment = TagEnrichmentService(

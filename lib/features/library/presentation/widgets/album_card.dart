@@ -14,9 +14,6 @@ String albumArtist(AlbumSummary album) =>
 class AlbumCard extends StatelessWidget {
   const AlbumCard({super.key, required this.album, required this.onTap});
 
-  /// Height of the text block under the artwork.
-  static const double labelHeight = 52;
-
   final AlbumSummary album;
   final VoidCallback onTap;
 
@@ -24,8 +21,10 @@ class AlbumCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Semantics(
+      container: true,
       button: true,
       label: '${albumTitle(album)}, ${albumArtist(album)}',
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,

@@ -30,13 +30,17 @@ class HaraAudioHandler extends BaseAudioHandler
     required this._artwork,
     this._queueStore,
     Random? random,
-  }) : _random = random ?? Random() {
+    this.pausedTimeout = const Duration(minutes: 10),
+    Future<void> Function()? releaseForeground,
+  }) : _random = random ?? Random(),
+       _releaseForeground = releaseForeground ?? (() async {}) {
     _subscriptions.addAll([
       _player.playbackEventStream.listen(
         (_) => _broadcastState(),
         onError: (Object _, StackTrace _) => _broadcastState(),
       ),
       _player.playerStateStream.listen(_onPlayerState),
+      _player.errorStream.listen(_onError),
       _player.currentIndexStream.listen(_onIndex),
       _player.positionStream.listen(_onPosition),
       _player.positionDiscontinuityStream.listen(_onDiscontinuity),
@@ -51,6 +55,17 @@ class HaraAudioHandler extends BaseAudioHandler
 
   /// While playing, the saved position is refreshed this often.
   static const _savePositionEvery = Duration(seconds: 5);
+
+  /// The service stays in the foreground while paused, so ColorOS (and
+  /// other skins) keep the controls on the lock screen. A paused
+  /// notification cannot be swiped away, so after this long the service
+  /// stops on its own; the queue is saved and resumes from the app.
+  final Duration pausedTimeout;
+  Timer? _pausedTimer;
+
+  /// Removes the paused notification after the timed stop (the platform
+  /// keeps it while the UI is bound to the service; see bootstrap).
+  final Future<void> Function() _releaseForeground;
 
   final AudioPlayer _player;
   final PlayEventRecorder _recorder;
@@ -118,14 +133,27 @@ class HaraAudioHandler extends BaseAudioHandler
     final index = shuffled ? _queue.shuffle(start, _random) : start;
     _songs = _queue.songs;
     _publishQueue();
-    await _player.setAudioSources(
+    final generation = ++_loadGeneration;
+    Future<void> load() => _player.setAudioSources(
       _sourcesFor(_songs),
       initialIndex: index,
       initialPosition: Duration.zero,
     );
+    try {
+      await load();
+    } on PlayerInterruptedException {
+      // A newer playSongs replaced this load: nothing to do.
+      if (generation != _loadGeneration) return;
+      // Otherwise the platform aborted it (seen once when ExoPlayer was
+      // slow to release the previous playlist); try once more.
+      await load();
+    }
     unawaited(_saveQueue());
     await play();
   }
+
+  /// Counts playSongs calls, to tell a superseded load from an aborted one.
+  int _loadGeneration = 0;
 
   @override
   Future<void> togglePlay() => _player.playing ? pause() : play();
@@ -308,18 +336,50 @@ class HaraAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> skipToNext() async {
-    if (_player.hasNext) await _player.seekToNext();
+    final next = _neighbour(1);
+    if (next != null) await _player.seek(Duration.zero, index: next);
   }
 
   @override
   Future<void> skipToPrevious() async {
-    if (_player.position > _restartThreshold || !_player.hasPrevious) {
+    final previous = _neighbour(-1);
+    if (_player.position > _restartThreshold || previous == null) {
       _recorder.trackRestarted();
       await _player.seek(Duration.zero);
     } else {
-      await _player.seekToPrevious();
+      await _player.seek(Duration.zero, index: previous);
     }
   }
+
+  /// just_audio's own next / previous stay on the same song under repeat
+  /// one; the skip buttons should always move.
+  int? _neighbour(int step) => neighbourIndex(
+    current: _player.currentIndex,
+    length: _songs.length,
+    step: step,
+    wrap: _repeat == RepeatSetting.all,
+  );
+
+  /// A queued song that can't be loaded (its file was deleted, or it
+  /// can't be decoded) is skipped; after [_maxSkipsOnError] failures in a
+  /// row playback pauses. just_audio's built-in skipping has the same
+  /// repeat-one blind spot as its next().
+  void _onError(PlayerException error) {
+    final next = _neighbour(1);
+    if (next != null && _errorSkips < _maxSkipsOnError) {
+      _errorSkips++;
+      scheduleMicrotask(() async {
+        await _player.seek(Duration.zero, index: next);
+        await _player.play();
+      });
+    } else {
+      _errorSkips = 0;
+      scheduleMicrotask(_player.pause);
+    }
+  }
+
+  static const _maxSkipsOnError = 5;
+  int _errorSkips = 0;
 
   @override
   Future<void> skipToQueueItem(int index) async {
@@ -349,6 +409,7 @@ class HaraAudioHandler extends BaseAudioHandler
   }
 
   Future<void> dispose() async {
+    _pausedTimer?.cancel();
     for (final s in _subscriptions) {
       await s.cancel();
     }
@@ -410,8 +471,25 @@ class HaraAudioHandler extends BaseAudioHandler
 
   Future<void> _onPlayerState(PlayerState state) async {
     final ready = state.processingState == ProcessingState.ready;
+    if (ready) _errorSkips = 0;
     _recorder.activeChanged(state.playing && ready);
     _publishStatus();
+    if (state.playing || state.processingState == ProcessingState.idle) {
+      _pausedTimer?.cancel();
+      _pausedTimer = null;
+    } else {
+      _pausedTimer ??= Timer(pausedTimeout, () {
+        _pausedTimer = null;
+        if (_player.playing) return;
+        unawaited(() async {
+          await stop();
+          // Let the platform finish its own stop (and any last notification
+          // update) before removing the notification.
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          if (!_player.playing) await _releaseForeground();
+        }());
+      });
+    }
     if (state.processingState == ProcessingState.completed) {
       // End of the queue (repeat off): back to the start, paused.
       _recorder.trackEnded();
@@ -531,4 +609,18 @@ class HaraAudioHandler extends BaseAudioHandler
     duration: song.duration,
     extras: {'songId': song.id},
   );
+}
+
+/// The index [step] places from [current] in a queue of [length], or null
+/// at either end unless [wrap] (repeat all) is set.
+int? neighbourIndex({
+  required int? current,
+  required int length,
+  required int step,
+  required bool wrap,
+}) {
+  if (current == null || length == 0) return null;
+  final target = current + step;
+  if (target >= 0 && target < length) return target;
+  return wrap ? target % length : null;
 }

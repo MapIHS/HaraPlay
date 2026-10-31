@@ -117,7 +117,7 @@ class _AddSongsSheetState extends ConsumerState<AddSongsSheet> {
                 )
               : ListView.builder(
                   itemCount: songs.length,
-                  itemExtent: HaraSizes.songTileHeight,
+                  itemExtent: HaraSizes.rowHeightOf(context),
                   itemBuilder: (context, i) => _PickRow(
                     song: songs[i],
                     picked: _picked.contains(songs[i].id),

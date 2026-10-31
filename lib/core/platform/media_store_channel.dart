@@ -17,14 +17,12 @@ class MediaStoreChannel implements MediaSource {
 
   @override
   Future<List<MediaStoreSong>> querySongs() async {
-    final rows =
-        await _channel.invokeListMethod<Map<Object?, Object?>>('querySongs') ??
-        const [];
-    final songs = <MediaStoreSong>[];
-    for (final row in rows) {
-      final song = MediaStoreSong.tryParse(row);
-      if (song != null) songs.add(song);
-    }
+    final reply = await _channel.invokeMapMethod<Object?, Object?>(
+      'querySongs',
+    );
+    final songs = reply == null
+        ? const <MediaStoreSong>[]
+        : MediaStoreSong.fromColumns(reply);
 
     // Below API 30 the audio table has no GENRE column; genres come from a
     // separate membership query instead.

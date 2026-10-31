@@ -87,9 +87,16 @@ class _PlayerPanelState extends ConsumerState<PlayerPanel>
       _progress.value = target;
       return;
     }
-    _progress.animateWith(
-      SpringSimulation(_spring, _progress.value, target, velocity),
-    );
+    // The spring stops within its tolerance, not exactly on the target.
+    // Snap to it: a panel left at 0.0001 keeps its full-height layout and
+    // would cover the bottom navigation.
+    _progress
+        .animateWith(
+          SpringSimulation(_spring, _progress.value, target, velocity),
+        )
+        .then((_) {
+          if (mounted) _progress.value = target;
+        });
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
@@ -130,7 +137,8 @@ class _PlayerPanelState extends ConsumerState<PlayerPanel>
         return AnimatedBuilder(
           animation: _progress,
           builder: (context, _) {
-            final t = _progress.value;
+            // Treat a sliver of travel as fully collapsed (see _settle).
+            final t = _progress.value < 0.001 ? 0.0 : _progress.value;
             final top = collapsedTop * (1 - t);
             final miniOpacity = (1 - t * 3).clamp(0.0, 1.0);
             final fullOpacity = ((t - 0.3) / 0.7).clamp(0.0, 1.0);

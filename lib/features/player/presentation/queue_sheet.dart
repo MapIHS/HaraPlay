@@ -64,7 +64,7 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     // Open scrolled so the current song is near the top.
     _scroll ??= ScrollController(
       initialScrollOffset:
-          (current - 1).clamp(0, 1 << 20) * QueueSheet.rowHeight,
+          (current - 1).clamp(0, 1 << 20) * HaraSizes.rowHeightOf(context),
     );
     final keys = _keysFor(queue);
     final player = ref.read(playerProvider);
@@ -135,39 +135,47 @@ class _Header extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Semantics(
-            header: true,
-            label: upcoming == 1
-                ? 'Up next, 1 song'
-                : 'Up next, $upcoming songs',
-            excludeSemantics: true,
-            child: Row(
-              children: [
-                Text('UP NEXT', style: textTheme.titleLarge),
-                const SizedBox(width: HaraSpacing.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: HaraSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.primary,
-                    borderRadius: BorderRadius.circular(HaraRadius.pill),
-                    border: Border.all(
-                      color: colors.border,
-                      width: HaraBorder.thin,
+          Expanded(
+            child: Semantics(
+              header: true,
+              label: upcoming == 1
+                  ? 'Up next, 1 song'
+                  : 'Up next, $upcoming songs',
+              excludeSemantics: true,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      'UP NEXT',
+                      style: textTheme.titleLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  child: Text(
-                    '$upcoming',
-                    style: HaraTextStyles.of(context).monoStrong
-                        .copyWith(color: colors.onPrimary),
+                  const SizedBox(width: HaraSpacing.sm),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: HaraSpacing.sm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.primary,
+                      borderRadius: BorderRadius.circular(HaraRadius.pill),
+                      border: Border.all(
+                        color: colors.border,
+                        width: HaraBorder.thin,
+                      ),
+                    ),
+                    child: Text(
+                      '$upcoming',
+                      style: HaraTextStyles.of(context).monoStrong
+                          .copyWith(color: colors.onPrimary),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const Spacer(),
           HaraButton(
             label: 'Clear',
             variant: HaraButtonVariant.ghost,
@@ -217,7 +225,7 @@ class _QueueRow extends StatelessWidget {
           child: Opacity(
             opacity: isPlayed ? 0.55 : 1,
             child: SizedBox(
-              height: QueueSheet.rowHeight,
+              height: HaraSizes.rowHeightOf(context),
               child: Padding(
                 padding: const EdgeInsets.only(left: HaraSpacing.gutter),
                 child: Row(

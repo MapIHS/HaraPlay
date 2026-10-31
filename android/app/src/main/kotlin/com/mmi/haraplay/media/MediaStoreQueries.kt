@@ -11,10 +11,13 @@ import android.provider.MediaStore.Audio.AudioColumns
 class MediaStoreQueries(private val resolver: ContentResolver) {
 
     /**
-     * Every music file as a map of plain values (see `MediaStoreSong.fromMap`
-     * on the Dart side for the keys).
+     * Every music file, column by column (decoded by `MediaStoreSong.fromColumns`
+     * on the Dart side). Numbers travel as packed `LongArray`s with [NO_VALUE]
+     * for null; text that repeats across songs (artist, album, genre, folder,
+     * MIME type) is sent once in `strings` and referenced by index (-1 = null).
+     * This is much smaller and faster to decode than one map per song.
      */
-    fun querySongs(): List<Map<String, Any?>> {
+    fun querySongs(): Map<String, Any?> {
         val base = mutableListOf(
             AudioColumns._ID,
             AudioColumns.TITLE,
@@ -43,31 +46,79 @@ class MediaStoreQueries(private val resolver: ContentResolver) {
             query(base)
         } catch (e: SQLiteException) {
             query(base)
-        } ?: return emptyList()
+        } ?: return emptyMap()
 
         return cursor.use { c ->
-            val songs = ArrayList<Map<String, Any?>>(c.count)
-            while (c.moveToNext()) {
-                songs += mapOf(
-                    "id" to c.long(AudioColumns._ID),
-                    "title" to c.string(AudioColumns.TITLE),
-                    "artist" to c.string(AudioColumns.ARTIST),
-                    "album" to c.string(AudioColumns.ALBUM),
-                    "albumArtist" to c.string(ALBUM_ARTIST),
-                    "albumId" to c.long(AudioColumns.ALBUM_ID),
-                    "artistId" to c.long(AudioColumns.ARTIST_ID),
-                    "genre" to c.string(GENRE),
-                    "track" to c.long(AudioColumns.TRACK),
-                    "year" to c.long(AudioColumns.YEAR),
-                    "durationMs" to c.long(AudioColumns.DURATION),
-                    "sizeBytes" to c.long(AudioColumns.SIZE),
-                    "mimeType" to c.string(AudioColumns.MIME_TYPE),
-                    "path" to c.string(@Suppress("DEPRECATION") AudioColumns.DATA),
-                    "dateAddedSec" to c.long(AudioColumns.DATE_ADDED),
-                    "dateModifiedSec" to c.long(AudioColumns.DATE_MODIFIED),
-                )
+            val n = c.count
+            val longColumns = linkedMapOf(
+                "id" to AudioColumns._ID,
+                "albumId" to AudioColumns.ALBUM_ID,
+                "artistId" to AudioColumns.ARTIST_ID,
+                "track" to AudioColumns.TRACK,
+                "year" to AudioColumns.YEAR,
+                "durationMs" to AudioColumns.DURATION,
+                "sizeBytes" to AudioColumns.SIZE,
+                "dateAddedSec" to AudioColumns.DATE_ADDED,
+                "dateModifiedSec" to AudioColumns.DATE_MODIFIED,
+            )
+            val sharedColumns = linkedMapOf(
+                "artist" to AudioColumns.ARTIST,
+                "album" to AudioColumns.ALBUM,
+                "albumArtist" to ALBUM_ARTIST,
+                "genre" to GENRE,
+                "mimeType" to AudioColumns.MIME_TYPE,
+            )
+            val longs = longColumns.mapValues { LongArray(n) }
+            val longIndex = longColumns.mapValues { c.getColumnIndex(it.value) }
+            val shared = sharedColumns.mapValues { IntArray(n) }
+            val sharedIndex = sharedColumns.mapValues { c.getColumnIndex(it.value) }
+            val folders = IntArray(n)
+            val titles = ArrayList<String?>(n)
+            val fileNames = ArrayList<String?>(n)
+            val strings = ArrayList<String>()
+            val stringIds = HashMap<String, Int>()
+            fun intern(value: String?): Int =
+                if (value == null) -1 else stringIds.getOrPut(value) {
+                    strings += value
+                    strings.size - 1
+                }
+            @Suppress("DEPRECATION")
+            val dataIndex = c.getColumnIndex(AudioColumns.DATA)
+            val titleIndex = c.getColumnIndex(AudioColumns.TITLE)
+
+            var row = 0
+            while (c.moveToNext() && row < n) {
+                for ((key, values) in longs) {
+                    val i = longIndex.getValue(key)
+                    values[row] = if (i < 0 || c.isNull(i)) NO_VALUE else c.getLong(i)
+                }
+                for ((key, values) in shared) {
+                    val i = sharedIndex.getValue(key)
+                    values[row] = intern(if (i < 0 || c.isNull(i)) null else c.getString(i))
+                }
+                titles += if (titleIndex < 0 || c.isNull(titleIndex)) null else c.getString(titleIndex)
+                val path = if (dataIndex < 0 || c.isNull(dataIndex)) null else c.getString(dataIndex)
+                val slash = path?.lastIndexOf('/') ?: -1
+                if (path == null || slash < 0) {
+                    folders[row] = -1
+                    fileNames += path
+                } else {
+                    folders[row] = intern(path.substring(0, slash))
+                    fileNames += path.substring(slash + 1)
+                }
+                row++
             }
-            songs
+
+            mapOf(
+                "count" to row,
+                "noValue" to NO_VALUE,
+                "strings" to strings,
+                "longs" to longs,
+                "shared" to shared,
+                "folders" to folders,
+                "titles" to titles,
+                "fileNames" to fileNames,
+            )
         }
     }
 
@@ -116,7 +167,9 @@ class MediaStoreQueries(private val resolver: ContentResolver) {
         projection.toTypedArray(),
         "${AudioColumns.IS_MUSIC} != 0",
         null,
-        "${AudioColumns.TITLE} COLLATE NOCASE ASC",
+        // No ORDER BY: the app sorts in its own database, and sorting 5k rows
+        // by a collated title costs MediaStore noticeable time.
+        null,
     )
 
     private companion object {
@@ -124,6 +177,9 @@ class MediaStoreQueries(private val resolver: ContentResolver) {
         // them public.
         const val ALBUM_ARTIST = "album_artist"
         const val GENRE = "genre"
+
+        /** Stands for null in the packed number columns. */
+        const val NO_VALUE = Long.MIN_VALUE
     }
 }
 

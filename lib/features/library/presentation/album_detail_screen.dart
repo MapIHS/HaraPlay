@@ -88,7 +88,7 @@ class AlbumDetailScreen extends ConsumerWidget {
           itemCount: rows.length,
           itemBuilder: (context, i) => switch (rows[i]) {
             final SongRow song => SizedBox(
-              height: HaraSizes.songTileHeight,
+              height: HaraSizes.rowHeightOf(context),
               child: LibrarySongTile(
                 song: song,
                 showAlbum: false,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/artwork/song_artwork.dart';
@@ -50,7 +51,14 @@ class MiniPlayer extends ConsumerWidget {
         label: 'Now playing: ${song.title} by ${song.displayArtist}',
         hint: 'Opens the player',
         onTap: onTap,
+        // The swipe as named actions; the gesture itself would add an
+        // unlabelled node to the tree.
+        customSemanticsActions: {
+          const CustomSemanticsAction(label: 'Next song'): player.next,
+          const CustomSemanticsAction(label: 'Previous song'): player.previous,
+        },
         child: GestureDetector(
+          excludeFromSemantics: true,
           onTap: onTap,
           onHorizontalDragEnd: (details) {
             final velocity = details.primaryVelocity ?? 0;
@@ -108,11 +116,19 @@ class MiniPlayer extends ConsumerWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  Text(
-                                    song.displayArtist,
-                                    style: textTheme.bodySmall,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  // With very large text the card is too
+                                  // short for two lines; the artist then
+                                  // gives way to the title (it is still in
+                                  // the semantics label).
+                                  Flexible(
+                                    child: ClipRect(
+                                      child: Text(
+                                        song.displayArtist,
+                                        style: textTheme.bodySmall,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -124,7 +140,7 @@ class MiniPlayer extends ConsumerWidget {
                                 : HaraIcons.play,
                             tooltip: status.playing ? 'Pause' : 'Play',
                             variant: HaraIconButtonVariant.primary,
-                            size: 44,
+                            size: HaraSizes.minTouchTarget,
                             iconSize: HaraSizes.iconSmall,
                             onPressed: player.togglePlay,
                           ),
