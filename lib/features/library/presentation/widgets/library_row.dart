@@ -13,20 +13,22 @@ class LibraryRow extends StatelessWidget {
     required this.leading,
     required this.title,
     required this.subtitle,
-    required this.onTap,
+    this.onTap,
   });
 
   final Widget leading;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+
+  /// Null for a row that can't be opened (no chevron).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = HaraColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     return Semantics(
-      button: true,
+      button: onTap != null,
       label: '$title, $subtitle',
       excludeSemantics: true,
       child: InkWell(
@@ -60,11 +62,12 @@ class LibraryRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  HaraIcons.chevronRight,
-                  size: HaraSizes.iconSmall,
-                  color: colors.mutedForeground,
-                ),
+                if (onTap != null)
+                  Icon(
+                    HaraIcons.chevronRight,
+                    size: HaraSizes.iconSmall,
+                    color: colors.mutedForeground,
+                  ),
               ],
             ),
           ),

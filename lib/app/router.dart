@@ -20,6 +20,7 @@ import '../features/playlists/presentation/playlist_detail_screen.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/stats/presentation/stats_screen.dart';
 import 'shell/app_shell.dart';
 import 'shell/branch_container.dart';
 
@@ -31,6 +32,7 @@ abstract final class AppRoutes {
   static const playlists = '/playlists';
   static const onboarding = '/onboarding';
   static const settings = '/settings';
+  static const stats = '/stats';
   static const designGallery = '/settings/gallery';
   static const mediaStoreDebug = '/settings/media-store';
   static const libraryDatabaseDebug = '/settings/library-database';
@@ -208,6 +210,11 @@ GoRouter createRouter({
         ],
       ),
       // Full-screen routes above the shell (no bottom nav).
+      GoRoute(
+        path: AppRoutes.stats,
+        parentNavigatorKey: rootKey,
+        builder: (context, state) => const StatsScreen(),
+      ),
       GoRoute(
         path: AppRoutes.settings,
         parentNavigatorKey: rootKey,

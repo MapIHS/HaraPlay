@@ -10,6 +10,7 @@ import 'daos/play_events_dao.dart';
 import 'daos/playlists_dao.dart';
 import 'daos/queue_state_dao.dart';
 import 'daos/search_dao.dart';
+import 'daos/stats_dao.dart';
 import 'tables.dart';
 
 export 'tables.dart';
@@ -36,6 +37,7 @@ part 'app_database.g.dart';
     PlaylistsDao,
     HomeDao,
     SearchDao,
+    StatsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {

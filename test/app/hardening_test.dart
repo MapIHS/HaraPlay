@@ -202,6 +202,16 @@ void main() {
     await tap(tester, navTab('Home'));
     await tap(tester, find.byTooltip('Settings'));
     await back(tester);
+
+    // Listening stats: both tabs, scrolled to the end.
+    await tap(tester, find.byTooltip('Listening stats'));
+    await tester.dragFrom(
+      tester.getCenter(find.byType(Scaffold).last),
+      const Offset(0, -3000),
+    );
+    await settle(tester);
+    await tap(tester, find.text('History'));
+    await back(tester);
   }
 
   for (final (width, height, scale) in [
@@ -267,6 +277,11 @@ void main() {
     }
 
     await check('Home');
+    await tap(tester, find.byTooltip('Listening stats'));
+    await check('Stats');
+    await tap(tester, find.text('History'));
+    await check('History');
+    await back(tester);
     for (final tab in ['Library', 'Search', 'Playlists']) {
       await tap(tester, navTab(tab));
       await check(tab);

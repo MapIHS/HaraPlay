@@ -10,6 +10,10 @@ part 'home_dao.g.dart';
 const countsAsPlaySql =
     'e.listened_ms >= MIN(30000, e.duration_ms / 2) AND e.listened_ms > 0';
 
+/// [countsAsPlaySql] for one listen.
+bool countsAsPlay({required int listenedMs, required int durationMs}) =>
+    listenedMs > 0 && listenedMs >= (durationMs ~/ 2).clamp(0, 30000);
+
 /// A song with how often it was played (Most played).
 class PlayedSong {
   const PlayedSong({required this.song, required this.plays});

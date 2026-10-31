@@ -39,6 +39,11 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('HaraPlay'),
         actions: [
           HaraIconButton(
+            icon: HaraIcons.chartColumn,
+            tooltip: 'Listening stats',
+            onPressed: () => context.push(AppRoutes.stats),
+          ),
+          HaraIconButton(
             icon: HaraIcons.settings,
             tooltip: 'Settings',
             onPressed: () => context.push(AppRoutes.settings),
@@ -144,7 +149,11 @@ class _HomeContent extends ConsumerWidget {
         const SectionHeader(title: 'Recently played'),
         const _RecentlyPlayedRow(),
         const SizedBox(height: HaraSpacing.lg),
-        const SectionHeader(title: 'Most played'),
+        SectionHeader(
+          title: 'Most played',
+          actionLabel: 'See stats',
+          onAction: () => context.push(AppRoutes.stats),
+        ),
         const _MostPlayedList(),
         const SizedBox(height: HaraSpacing.lg),
         const SectionHeader(title: 'Recently added'),
