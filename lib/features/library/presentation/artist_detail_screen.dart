@@ -83,7 +83,13 @@ class ArtistDetailScreen extends ConsumerWidget {
                     album: albums[i],
                     onTap: () {
                       final id = albums[i].albumId;
-                      if (id != null) context.push(AppRoutes.album(id));
+                      if (id == null) return;
+                      context.push(
+                        AppRoutes.album(
+                          id,
+                          tab: currentTab(GoRouter.of(context)),
+                        ),
+                      );
                     },
                   ),
                 ),

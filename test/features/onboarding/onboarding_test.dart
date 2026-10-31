@@ -65,7 +65,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(permissions.notificationRequestCount, 1);
-    expect(find.text('Welcome to HaraPlay'), findsOneWidget);
+    expect(find.text('Shuffle all'), findsOneWidget); // Home, with music
     expect(find.byType(HaraBottomNav), findsOneWidget);
   });
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
+import 'package:haraplay/features/library/presentation/album_detail_screen.dart';
 
 import 'helpers/test_app.dart';
 import 'helpers/test_database.dart';
@@ -56,17 +57,19 @@ void main() {
 
     await tapAndSettle(tester, navTab('Library'));
     await tapAndSettle(tester, find.text('Albums'));
+    // Home lists the album too, so look for the album page itself.
+    final albumPage = find.byType(AlbumDetailScreen);
     await tapAndSettle(tester, find.text('Midnight'));
-    expect(find.text('ALBUM'), findsOneWidget);
+    expect(albumPage, findsOneWidget);
 
     await tapAndSettle(tester, navTab('Home'));
-    expect(find.text('ALBUM'), findsNothing);
+    expect(albumPage, findsNothing);
     await tapAndSettle(tester, navTab('Library'));
-    expect(find.text('ALBUM'), findsOneWidget);
+    expect(albumPage, findsOneWidget);
 
     // Re-selecting the current tab returns to its root.
     await tapAndSettle(tester, navTab('Library'));
-    expect(find.text('ALBUM'), findsNothing);
+    expect(albumPage, findsNothing);
     expect(find.text('1 album'), findsOneWidget);
   });
 

@@ -13,7 +13,7 @@ import '../domain/library_sort.dart';
 final libraryCountsProvider = StreamProvider<LibraryCounts>(
   (ref) => ref
       .watch(libraryDaoProvider)
-      .watchCounts(minDurationMs: ref.watch(_minMsProvider)),
+      .watchCounts(minDurationMs: ref.watch(minDurationMsProvider)),
 );
 
 /// The state of the last user-visible library sync.
@@ -44,7 +44,8 @@ final browseDaoProvider = Provider<BrowseDao>(
   (ref) => ref.watch(appDatabaseProvider).browseDao,
 );
 
-final _minMsProvider = Provider<int>(
+/// The "Hide short audio" limit in milliseconds.
+final minDurationMsProvider = Provider<int>(
   (ref) => ref.watch(minSongLengthProvider).inMilliseconds,
 );
 
@@ -135,7 +136,7 @@ final songsProvider = StreamProvider<List<SongRow>>(
       .watch(browseDaoProvider)
       .watchSongs(
         ref.watch(songSortProvider),
-        minDurationMs: ref.watch(_minMsProvider),
+        minDurationMs: ref.watch(minDurationMsProvider),
       ),
 );
 
@@ -144,7 +145,7 @@ final albumsProvider = StreamProvider<List<AlbumSummary>>(
       .watch(browseDaoProvider)
       .watchAlbums(
         ref.watch(albumSortProvider),
-        minDurationMs: ref.watch(_minMsProvider),
+        minDurationMs: ref.watch(minDurationMsProvider),
       ),
 );
 
@@ -153,7 +154,7 @@ final artistsProvider = StreamProvider<List<ArtistSummary>>(
       .watch(browseDaoProvider)
       .watchArtists(
         ref.watch(artistSortProvider),
-        minDurationMs: ref.watch(_minMsProvider),
+        minDurationMs: ref.watch(minDurationMsProvider),
       ),
 );
 
@@ -162,7 +163,7 @@ final foldersProvider = StreamProvider<List<FolderSummary>>(
       .watch(browseDaoProvider)
       .watchFolders(
         ref.watch(folderSortProvider),
-        minDurationMs: ref.watch(_minMsProvider),
+        minDurationMs: ref.watch(minDurationMsProvider),
       ),
 );
 
@@ -171,7 +172,7 @@ final genresProvider = StreamProvider<List<GenreSummary>>(
       .watch(browseDaoProvider)
       .watchGenres(
         ref.watch(genreSortProvider),
-        minDurationMs: ref.watch(_minMsProvider),
+        minDurationMs: ref.watch(minDurationMsProvider),
       ),
 );
 
@@ -180,14 +181,17 @@ final genresProvider = StreamProvider<List<GenreSummary>>(
 final albumProvider = StreamProvider.autoDispose.family<AlbumSummary?, int>(
   (ref, albumId) => ref
       .watch(browseDaoProvider)
-      .watchAlbum(albumId, minDurationMs: ref.watch(_minMsProvider)),
+      .watchAlbum(albumId, minDurationMs: ref.watch(minDurationMsProvider)),
 );
 
 final albumSongsProvider = StreamProvider.autoDispose
     .family<List<SongRow>, int>(
       (ref, albumId) => ref
           .watch(browseDaoProvider)
-          .watchAlbumSongs(albumId, minDurationMs: ref.watch(_minMsProvider)),
+          .watchAlbumSongs(
+            albumId,
+            minDurationMs: ref.watch(minDurationMsProvider),
+          ),
     );
 
 /// Keyed by artist name; null is "Unknown artist".
@@ -195,7 +199,10 @@ final artistSongsProvider = StreamProvider.autoDispose
     .family<List<SongRow>, String?>(
       (ref, artist) => ref
           .watch(browseDaoProvider)
-          .watchArtistSongs(artist, minDurationMs: ref.watch(_minMsProvider)),
+          .watchArtistSongs(
+            artist,
+            minDurationMs: ref.watch(minDurationMsProvider),
+          ),
     );
 
 final artistAlbumsProvider = StreamProvider.autoDispose
@@ -204,7 +211,7 @@ final artistAlbumsProvider = StreamProvider.autoDispose
           .watch(browseDaoProvider)
           .watchAlbumsOfArtist(
             artist,
-            minDurationMs: ref.watch(_minMsProvider),
+            minDurationMs: ref.watch(minDurationMsProvider),
           ),
     );
 
@@ -212,14 +219,20 @@ final folderSongsProvider = StreamProvider.autoDispose
     .family<List<SongRow>, String>(
       (ref, path) => ref
           .watch(browseDaoProvider)
-          .watchFolderSongs(path, minDurationMs: ref.watch(_minMsProvider)),
+          .watchFolderSongs(
+            path,
+            minDurationMs: ref.watch(minDurationMsProvider),
+          ),
     );
 
 final genreSongsProvider = StreamProvider.autoDispose
     .family<List<SongRow>, String>(
       (ref, genre) => ref
           .watch(browseDaoProvider)
-          .watchGenreSongs(genre, minDurationMs: ref.watch(_minMsProvider)),
+          .watchGenreSongs(
+            genre,
+            minDurationMs: ref.watch(minDurationMsProvider),
+          ),
     );
 
 /// One song by ID (song info sheet); null if it no longer exists.

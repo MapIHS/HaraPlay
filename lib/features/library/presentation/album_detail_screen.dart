@@ -47,7 +47,12 @@ class AlbumDetailScreen extends ConsumerWidget {
           title: album == null ? '' : albumTitle(album),
           subtitle: album == null ? null : 'by ${albumArtist(album)}',
           onSubtitleTap: linkable
-              ? () => context.push(AppRoutes.artist(artist))
+              ? () => context.push(
+                  AppRoutes.artist(
+                    artist,
+                    tab: currentTab(GoRouter.of(context)),
+                  ),
+                )
               : null,
           chips: [
             if (album?.year != null)

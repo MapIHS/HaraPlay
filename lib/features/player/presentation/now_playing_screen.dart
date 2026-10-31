@@ -33,9 +33,13 @@ String playingFrom(PlaybackStatus status) {
     PlaySource.external => 'A shared file',
   };
   final label = status.sourceLabel;
-  return label == null || status.source == PlaySource.songs
-      ? kind
-      : '$kind · $label';
+  return switch (status.source) {
+    _ when label == null => kind,
+    // Home rows ("Recently played") name themselves.
+    PlaySource.songs => label,
+    PlaySource.search => '$kind · "$label"',
+    _ => '$kind · $label',
+  };
 }
 
 /// The full player inside the expanded `PlayerPanel`.
@@ -182,7 +186,10 @@ class _TitleBlock extends StatelessWidget {
             borderRadius: BorderRadius.circular(HaraRadius.sm),
             onTap: () {
               onCollapse();
-              context.push(AppRoutes.artist(song.artist));
+              final router = GoRouter.of(context);
+              router.push(
+                AppRoutes.artist(song.artist, tab: currentTab(router)),
+              );
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: HaraSpacing.xs),

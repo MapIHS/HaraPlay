@@ -149,7 +149,12 @@ void main() {
       source: source,
       sourceLabel: label,
     );
-    expect(playingFrom(status(PlaySource.songs, 'x')), 'All songs');
+    expect(playingFrom(status(PlaySource.songs)), 'All songs');
+    expect(
+      playingFrom(status(PlaySource.songs, 'Recently played')),
+      'Recently played',
+    );
+    expect(playingFrom(status(PlaySource.search, 'drive')), 'Search · "drive"');
     expect(playingFrom(status(PlaySource.genre, 'Jazz')), 'Genre · Jazz');
     expect(playingFrom(status(PlaySource.album)), 'Album');
   });

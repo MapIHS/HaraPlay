@@ -67,6 +67,18 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     sort: const LibrarySort(AlbumSortField.year, descending: true),
   ).watch();
 
+  /// Albums with the newest additions first (Home).
+  Stream<List<AlbumSummary>> watchRecentlyAddedAlbums({
+    required int minDurationMs,
+    int limit = 12,
+  }) => _albums(
+    where: 'duration_ms >= ?',
+    variables: [Variable.withInt(minDurationMs)],
+    sort: const LibrarySort(AlbumSortField.title),
+    order: 'g.added DESC',
+    limit: limit,
+  ).watch();
+
   Stream<AlbumSummary?> watchAlbum(int albumId, {required int minDurationMs}) =>
       _albums(
         where: 'duration_ms >= ? AND album_id = ?',
@@ -78,14 +90,20 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     required String where,
     required List<Variable> variables,
     required LibrarySort<AlbumSortField> sort,
+    String? order,
+    int? limit,
   }) {
     final dir = sort.descending ? 'DESC' : 'ASC';
-    final order = switch (sort.field) {
-      AlbumSortField.title => 'g.title IS NULL, g.title COLLATE NOCASE $dir',
-      AlbumSortField.artist => 'g.artist IS NULL, g.artist COLLATE NOCASE $dir',
-      AlbumSortField.year => 'g.year IS NULL, g.year $dir',
-      AlbumSortField.songCount => 'g.song_count $dir',
-    };
+    final orderBy =
+        order ??
+        switch (sort.field) {
+          AlbumSortField.title =>
+            'g.title IS NULL, g.title COLLATE NOCASE $dir',
+          AlbumSortField.artist =>
+            'g.artist IS NULL, g.artist COLLATE NOCASE $dir',
+          AlbumSortField.year => 'g.year IS NULL, g.year $dir',
+          AlbumSortField.songCount => 'g.song_count $dir',
+        };
     // The cover is the album's lowest song ID; its date_modified versions
     // the cached artwork.
     return customSelect(
@@ -98,10 +116,12 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
       '  MAX(year) AS year, '
       '  COUNT(*) AS song_count, '
       '  SUM(duration_ms) AS duration_ms, '
-      '  MIN(id) AS cover_id '
+      '  MIN(id) AS cover_id, '
+      '  MAX(date_added) AS added '
       '  FROM songs WHERE $where GROUP BY album_id'
       ') g JOIN songs c ON c.id = g.cover_id '
-      'ORDER BY $order, g.title COLLATE NOCASE',
+      'ORDER BY $orderBy, g.title COLLATE NOCASE'
+      '${limit == null ? '' : ' LIMIT $limit'}',
       variables: variables,
       readsFrom: {songs},
     ).map(

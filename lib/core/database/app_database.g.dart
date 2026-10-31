@@ -4702,6 +4702,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final QueueStateDao queueStateDao = QueueStateDao(this as AppDatabase);
   late final FavoritesDao favoritesDao = FavoritesDao(this as AppDatabase);
   late final PlaylistsDao playlistsDao = PlaylistsDao(this as AppDatabase);
+  late final HomeDao homeDao = HomeDao(this as AppDatabase);
+  late final SearchDao searchDao = SearchDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

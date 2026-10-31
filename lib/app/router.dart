@@ -38,20 +38,61 @@ abstract final class AppRoutes {
 
   static String playlist(int id) => '/playlists/$id';
 
-  static String album(int albumId) => '/library/album/$albumId';
+  /// Detail pages exist under every tab root, so a link opens them in the
+  /// current tab and Back returns there. [tab] is a tab root (see
+  /// [currentTab]); it defaults to the Library.
+  static String album(int albumId, {String tab = library}) =>
+      '$tab/album/$albumId';
 
   /// Null opens "Unknown artist".
-  static String artist(String? name) => Uri(
-    path: '/library/artist',
+  static String artist(String? name, {String tab = library}) => Uri(
+    path: '$tab/artist',
     queryParameters: name == null ? null : {'name': name},
   ).toString();
 
-  static String folder(String path) =>
-      Uri(path: '/library/folder', queryParameters: {'path': path}).toString();
+  static String folder(String path, {String tab = library}) =>
+      Uri(path: '$tab/folder', queryParameters: {'path': path}).toString();
 
-  static String genre(String name) =>
-      Uri(path: '/library/genre', queryParameters: {'name': name}).toString();
+  static String genre(String name, {String tab = library}) =>
+      Uri(path: '$tab/genre', queryParameters: {'name': name}).toString();
+
+  static const tabs = [home, library, search, playlists];
 }
+
+/// The tab root of the router's current location; the Library for pages
+/// outside the tabs (Settings).
+String currentTab(GoRouter router) {
+  final path = router.routerDelegate.currentConfiguration.uri.path;
+  for (final tab in AppRoutes.tabs) {
+    if (path == tab || path.startsWith('$tab/')) return tab;
+  }
+  return AppRoutes.library;
+}
+
+/// Album, artist, folder and genre pages, registered under each tab root.
+List<RouteBase> _detailRoutes() => [
+  GoRoute(
+    path: 'album/:albumId',
+    builder: (context, state) => AlbumDetailScreen(
+      albumId: int.tryParse(state.pathParameters['albumId']!) ?? -1,
+    ),
+  ),
+  GoRoute(
+    path: 'artist',
+    builder: (context, state) =>
+        ArtistDetailScreen(name: state.uri.queryParameters['name']),
+  ),
+  GoRoute(
+    path: 'folder',
+    builder: (context, state) =>
+        FolderDetailScreen(path: state.uri.queryParameters['path'] ?? ''),
+  ),
+  GoRoute(
+    path: 'genre',
+    builder: (context, state) =>
+        GenreDetailScreen(name: state.uri.queryParameters['name'] ?? ''),
+  ),
+];
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Re-runs the redirect whenever access or onboarding state changes.
@@ -118,6 +159,7 @@ GoRouter createRouter({
               GoRoute(
                 path: AppRoutes.home,
                 builder: (context, state) => const HomeScreen(),
+                routes: _detailRoutes(),
               ),
             ],
           ),
@@ -126,32 +168,7 @@ GoRouter createRouter({
               GoRoute(
                 path: AppRoutes.library,
                 builder: (context, state) => const LibraryScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'album/:albumId',
-                    builder: (context, state) => AlbumDetailScreen(
-                      albumId: int.parse(state.pathParameters['albumId']!),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'artist',
-                    builder: (context, state) => ArtistDetailScreen(
-                      name: state.uri.queryParameters['name'],
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'folder',
-                    builder: (context, state) => FolderDetailScreen(
-                      path: state.uri.queryParameters['path'] ?? '',
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'genre',
-                    builder: (context, state) => GenreDetailScreen(
-                      name: state.uri.queryParameters['name'] ?? '',
-                    ),
-                  ),
-                ],
+                routes: _detailRoutes(),
               ),
             ],
           ),
@@ -160,6 +177,7 @@ GoRouter createRouter({
               GoRoute(
                 path: AppRoutes.search,
                 builder: (context, state) => const SearchScreen(),
+                routes: _detailRoutes(),
               ),
             ],
           ),
@@ -169,6 +187,8 @@ GoRouter createRouter({
                 path: AppRoutes.playlists,
                 builder: (context, state) => const PlaylistsScreen(),
                 routes: [
+                  // Before ':playlistId', which would match "album" too.
+                  ..._detailRoutes(),
                   GoRoute(
                     path: 'favorites',
                     builder: (context, state) => const LikedSongsScreen(),

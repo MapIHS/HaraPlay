@@ -70,10 +70,12 @@ Future<void> showSongActions(
       onRemoveFromPlaylist?.call();
     case _SongAction.goToAlbum:
       beforeNavigate?.call();
-      await router.push(AppRoutes.album(song.albumId!));
+      await router.push(
+        AppRoutes.album(song.albumId!, tab: currentTab(router)),
+      );
     case _SongAction.goToArtist:
       beforeNavigate?.call();
-      await router.push(AppRoutes.artist(song.artist));
+      await router.push(AppRoutes.artist(song.artist, tab: currentTab(router)));
     case _SongAction.info:
       if (!context.mounted) return;
       await showHaraSheet<void>(

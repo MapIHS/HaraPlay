@@ -51,7 +51,7 @@ class PlaylistsScreen extends ConsumerWidget {
               HaraSpacing.gutter,
               HaraSpacing.md,
             ),
-            child: _LikedSongsCard(
+            child: LikedSongsCard(
               count: likedCount,
               onTap: () => context.push(AppRoutes.likedSongs),
             ),
@@ -199,8 +199,9 @@ class _SheetAction extends StatelessWidget {
   }
 }
 
-class _LikedSongsCard extends StatelessWidget {
-  const _LikedSongsCard({required this.count, required this.onTap});
+/// The brand-filled "Liked songs" card (Playlists tab, Home).
+class LikedSongsCard extends StatelessWidget {
+  const LikedSongsCard({super.key, required this.count, required this.onTap});
 
   final int count;
   final VoidCallback onTap;
