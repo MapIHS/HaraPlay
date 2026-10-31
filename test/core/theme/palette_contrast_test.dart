@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/core/theme/hara_colors.dart';
+import 'package:haraplay/core/theme/hara_theme.dart';
 import 'package:haraplay/core/theme/palettes.dart';
 
 double contrast(Color a, Color b) {
@@ -47,6 +48,15 @@ void main() {
         for (final accent in c.accents) {
           expect(contrast(c.foreground, accent), greaterThanOrEqualTo(4.5));
         }
+      });
+
+      test('snackbar text and action on the snackbar ≥ 4.5:1', () {
+        // The snackbar is drawn in foreground with background-coloured text.
+        expect(contrast(c.background, c.foreground), greaterThanOrEqualTo(4.5));
+        expect(
+          contrast(snackBarActionColor(c), c.foreground),
+          greaterThanOrEqualTo(4.5),
+        );
       });
 
       test('danger on background and onDanger on danger ≥ 4.5:1', () {

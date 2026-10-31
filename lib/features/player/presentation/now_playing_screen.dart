@@ -10,6 +10,8 @@ import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_button.dart';
 import '../../../core/widgets/hara_icon_button.dart';
+import '../../../core/widgets/heart_mark.dart';
+import '../../playlists/presentation/playlist_providers.dart';
 import '../domain/queue_song.dart';
 import 'player_providers.dart';
 import 'queue_sheet.dart';
@@ -47,7 +49,6 @@ class NowPlayingScreen extends ConsumerWidget {
     final status = ref.watch(playbackStatusProvider).value;
     final song = status?.song;
     if (status == null || song == null) return const SizedBox.shrink();
-    final colors = HaraColors.of(context);
     final textTheme = Theme.of(context).textTheme;
 
     return SafeArea(
@@ -106,41 +107,22 @@ class NowPlayingScreen extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.only(
+              left: HaraSpacing.xl,
+              right: HaraSpacing.sm,
+            ),
+            child: Row(
               children: [
-                Semantics(
-                  header: true,
-                  child: Text(
-                    song.title,
-                    style: textTheme.headlineSmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Expanded(
+                  child: _TitleBlock(song: song, onCollapse: onCollapse),
                 ),
-                const SizedBox(height: HaraSpacing.xs),
-                Semantics(
-                  link: true,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(HaraRadius.sm),
-                    onTap: () {
-                      onCollapse();
-                      context.push(AppRoutes.artist(song.artist));
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: HaraSpacing.xs,
-                      ),
-                      child: Text(
-                        song.displayArtist,
-                        style: textTheme.bodyLarge!.copyWith(
-                          color: colors.mutedForeground,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                const SizedBox(width: HaraSpacing.sm),
+                LikeButton(
+                  liked: ref.watch(isLikedProvider(song.id)),
+                  onPressed: () => setLiked(
+                    ref,
+                    song.id,
+                    liked: !ref.read(isLikedProvider(song.id)),
                   ),
                 ),
               ],
@@ -166,6 +148,56 @@ class NowPlayingScreen extends ConsumerWidget {
           const SizedBox(height: HaraSpacing.sm),
         ],
       ),
+    );
+  }
+}
+
+/// Title and the artist link.
+class _TitleBlock extends StatelessWidget {
+  const _TitleBlock({required this.song, required this.onCollapse});
+
+  final QueueSong song;
+  final VoidCallback onCollapse;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = HaraColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            song.title,
+            style: textTheme.headlineSmall,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: HaraSpacing.xs),
+        Semantics(
+          link: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(HaraRadius.sm),
+            onTap: () {
+              onCollapse();
+              context.push(AppRoutes.artist(song.artist));
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: HaraSpacing.xs),
+              child: Text(
+                song.displayArtist,
+                style: textTheme.bodyLarge!.copyWith(
+                  color: colors.mutedForeground,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -75,7 +75,7 @@ void main() {
   ) async {
     await pumpHaraApp(tester);
     await tapAndSettle(tester, navTab('Playlists'));
-    await tapAndSettle(tester, find.text('Open Liked songs'));
+    await tapAndSettle(tester, find.text('Liked songs'));
     expect(find.text('No liked songs yet'), findsOneWidget);
 
     expect(await pressBack(tester), isTrue);

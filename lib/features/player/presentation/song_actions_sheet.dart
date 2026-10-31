@@ -12,6 +12,8 @@ import '../../../core/theme/hara_typography.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../core/widgets/hara_sheet.dart';
 import '../../library/presentation/library_providers.dart';
+import '../../playlists/presentation/add_to_playlist_sheet.dart';
+import '../../playlists/presentation/playlist_providers.dart';
 import '../domain/queue_song.dart';
 import 'player_providers.dart';
 
@@ -19,12 +21,14 @@ import 'player_providers.dart';
 /// Playing). [beforeNavigate] runs before "Go to album / artist" leaves
 /// (Now Playing collapses itself). [showFeedback] shows a snackbar after
 /// queue actions; off where a snackbar would be hidden (Now Playing).
+/// [onRemoveFromPlaylist] adds "Remove from playlist" (playlist screen).
 Future<void> showSongActions(
   BuildContext context,
   WidgetRef ref,
   QueueSong song, {
   VoidCallback? beforeNavigate,
   bool showFeedback = true,
+  VoidCallback? onRemoveFromPlaylist,
 }) async {
   final router = GoRouter.of(context);
   final messenger = ScaffoldMessenger.of(context);
@@ -39,7 +43,8 @@ Future<void> showSongActions(
 
   final action = await showHaraSheet<_SongAction>(
     context: context,
-    builder: (_) => _SongActions(song: song),
+    builder: (_) =>
+        _SongActions(song: song, removable: onRemoveFromPlaylist != null),
   );
   if (action == null || !context.mounted) return;
 
@@ -50,6 +55,19 @@ Future<void> showSongActions(
     case _SongAction.addToQueue:
       await player.addToQueue([song]);
       feedback('Added to queue: ${song.title}');
+    case _SongAction.addToPlaylist:
+      if (!context.mounted) return;
+      await showAddToPlaylistSheet(context, ref, [
+        song.id,
+      ], showFeedback: showFeedback);
+    case _SongAction.like:
+      await setLiked(ref, song.id, liked: true);
+      feedback('Added to Liked songs');
+    case _SongAction.unlike:
+      await setLiked(ref, song.id, liked: false);
+      feedback('Removed from Liked songs');
+    case _SongAction.removeFromPlaylist:
+      onRemoveFromPlaylist?.call();
     case _SongAction.goToAlbum:
       beforeNavigate?.call();
       await router.push(AppRoutes.album(song.albumId!));
@@ -66,15 +84,27 @@ Future<void> showSongActions(
   }
 }
 
-enum _SongAction { playNext, addToQueue, goToAlbum, goToArtist, info }
+enum _SongAction {
+  playNext,
+  addToQueue,
+  addToPlaylist,
+  like,
+  unlike,
+  removeFromPlaylist,
+  goToAlbum,
+  goToArtist,
+  info,
+}
 
-class _SongActions extends StatelessWidget {
-  const _SongActions({required this.song});
+class _SongActions extends ConsumerWidget {
+  const _SongActions({required this.song, required this.removable});
 
   final QueueSong song;
+  final bool removable;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liked = ref.watch(isLikedProvider(song.id));
     final textTheme = Theme.of(context).textTheme;
     void choose(_SongAction action) => Navigator.of(context).pop(action);
 
@@ -132,6 +162,22 @@ class _SongActions extends StatelessWidget {
           label: 'Add to queue',
           onTap: () => choose(_SongAction.addToQueue),
         ),
+        _ActionRow(
+          icon: HaraIcons.listPlus,
+          label: 'Add to playlist',
+          onTap: () => choose(_SongAction.addToPlaylist),
+        ),
+        _ActionRow(
+          icon: HaraIcons.heart,
+          label: liked ? 'Remove from Liked songs' : 'Add to Liked songs',
+          onTap: () => choose(liked ? _SongAction.unlike : _SongAction.like),
+        ),
+        if (removable)
+          _ActionRow(
+            icon: HaraIcons.trash2,
+            label: 'Remove from this playlist',
+            onTap: () => choose(_SongAction.removeFromPlaylist),
+          ),
         if (song.albumId != null)
           _ActionRow(
             icon: HaraIcons.disc3,

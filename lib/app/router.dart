@@ -16,6 +16,7 @@ import '../features/library/presentation/library_screen.dart';
 import '../features/onboarding/data/media_permission_service.dart';
 import '../features/onboarding/presentation/onboarding_controllers.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
+import '../features/playlists/presentation/playlist_detail_screen.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -34,6 +35,8 @@ abstract final class AppRoutes {
   static const mediaStoreDebug = '/settings/media-store';
   static const libraryDatabaseDebug = '/settings/library-database';
   static const likedSongs = '/playlists/favorites';
+
+  static String playlist(int id) => '/playlists/$id';
 
   static String album(int albumId) => '/library/album/$albumId';
 
@@ -169,6 +172,14 @@ GoRouter createRouter({
                   GoRoute(
                     path: 'favorites',
                     builder: (context, state) => const LikedSongsScreen(),
+                  ),
+                  GoRoute(
+                    path: ':playlistId',
+                    builder: (context, state) => PlaylistDetailScreen(
+                      playlistId:
+                          int.tryParse(state.pathParameters['playlistId']!) ??
+                          -1,
+                    ),
                   ),
                 ],
               ),

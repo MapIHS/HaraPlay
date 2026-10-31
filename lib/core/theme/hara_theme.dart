@@ -141,7 +141,9 @@ abstract final class HaraTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: c.foreground,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: c.background),
-        actionTextColor: c.primary,
+        // The bar is inverted (foreground colour), so the brand fill only
+        // reads on the dark bar of the light theme.
+        actionTextColor: snackBarActionColor(c),
         behavior: SnackBarBehavior.floating,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -184,3 +186,8 @@ abstract final class HaraTheme {
     );
   }
 }
+
+/// "Undo" on a snackbar: brand colour on the light theme's dark bar, the
+/// page background on the dark theme's light bar.
+Color snackBarActionColor(HaraColors c) =>
+    c.brightness == Brightness.dark ? c.background : c.primary;
