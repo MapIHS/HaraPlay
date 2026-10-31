@@ -180,6 +180,11 @@ void main() {
     await back(tester);
     await tap(tester, find.byTooltip('Song actions'));
     await back(tester);
+    // Sleep timer sheet; "End of song" leaves the widest chip in place.
+    await tap(tester, find.byTooltip('Sleep timer'));
+    await tap(tester, find.text('End of this song'));
+    await tap(tester, find.text('End of song'));
+    await back(tester);
     await tap(tester, find.byTooltip('Close player'));
 
     // Settings.

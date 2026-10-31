@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/theme/hara_tokens.dart';
-import '../../../core/widgets/hara_button.dart';
+import '../../../core/widgets/hara_dialog_actions.dart';
 import '../domain/playlist_models.dart';
 
 /// Asks for a playlist name; returns the cleaned name, or null if
@@ -69,9 +68,9 @@ class _NameDialogState extends State<_NameDialog> {
         onChanged: (_) => setState(() {}),
         onSubmitted: (_) => _submit(),
       ),
-      actionsPadding: _actionsPadding,
+      actionsPadding: HaraDialogActions.padding,
       actions: [
-        _DialogActions(
+        HaraDialogActions(
           confirmLabel: widget.confirmLabel,
           onCancel: () => Navigator.of(context).pop(),
           onConfirm: _name == null ? null : _submit,
@@ -89,9 +88,9 @@ Future<bool> confirmDeletePlaylist(BuildContext context, String name) async =>
       builder: (context) => AlertDialog(
         title: const Text('Delete playlist?'),
         content: Text('"$name" will be deleted. The songs stay on your phone.'),
-        actionsPadding: _actionsPadding,
+        actionsPadding: HaraDialogActions.padding,
         actions: [
-          _DialogActions(
+          HaraDialogActions(
             confirmLabel: 'Delete',
             onCancel: () => Navigator.of(context).pop(false),
             onConfirm: () => Navigator.of(context).pop(true),
@@ -100,51 +99,3 @@ Future<bool> confirmDeletePlaylist(BuildContext context, String name) async =>
       ),
     ) ??
     false;
-
-const _actionsPadding = EdgeInsets.fromLTRB(
-  HaraSpacing.xl,
-  0,
-  HaraSpacing.xl,
-  HaraSpacing.xl,
-);
-
-/// Cancel and confirm side by side, sharing the dialog's width (the
-/// default action bar stacks them on narrow phones).
-class _DialogActions extends StatelessWidget {
-  const _DialogActions({
-    required this.confirmLabel,
-    required this.onCancel,
-    required this.onConfirm,
-  });
-
-  final String confirmLabel;
-  final VoidCallback onCancel;
-  final VoidCallback? onConfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.maxFinite,
-      child: Row(
-        children: [
-          Expanded(
-            child: HaraButton(
-              label: 'Cancel',
-              variant: HaraButtonVariant.secondary,
-              expand: true,
-              onPressed: onCancel,
-            ),
-          ),
-          const SizedBox(width: HaraSpacing.sm),
-          Expanded(
-            child: HaraButton(
-              label: confirmLabel,
-              expand: true,
-              onPressed: onConfirm,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

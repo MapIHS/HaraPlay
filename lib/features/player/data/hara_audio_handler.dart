@@ -12,7 +12,9 @@ import '../domain/player.dart';
 import '../domain/queue_model.dart';
 import '../domain/queue_restore.dart';
 import '../domain/queue_song.dart';
+import '../domain/sleep_timer_state.dart';
 import 'play_event_recorder.dart';
+import 'sleep_timer.dart';
 
 /// Owns the single [AudioPlayer] and the queue, and publishes state to the
 /// notification, lock screen and media buttons through audio_service.
@@ -87,6 +89,8 @@ class HaraAudioHandler extends BaseAudioHandler
   /// just_audio's index briefly points at shifting entries.
   bool _rebuilding = false;
   Duration _lastSavedPosition = Duration.zero;
+
+  late final _sleep = SleepTimer(setVolume: _player.setVolume, pause: pause);
 
   final _status = StreamController<PlaybackStatus>.broadcast();
   PlaybackStatus _lastStatus = PlaybackStatus.idle;
@@ -314,6 +318,18 @@ class HaraAudioHandler extends BaseAudioHandler
     _publishStatus();
   }
 
+  @override
+  Stream<SleepTimerState> get sleepTimer => _sleep.states;
+
+  @override
+  void startSleepTimer(Duration duration) => _sleep.start(duration);
+
+  @override
+  void sleepAtEndOfTrack() => _sleep.startEndOfTrack();
+
+  @override
+  void cancelSleepTimer() => _sleep.cancel();
+
   // audio_service callbacks -------------------------------------------------
 
   @override
@@ -410,6 +426,7 @@ class HaraAudioHandler extends BaseAudioHandler
 
   Future<void> dispose() async {
     _pausedTimer?.cancel();
+    await _sleep.dispose();
     for (final s in _subscriptions) {
       await s.cancel();
     }
@@ -438,6 +455,12 @@ class HaraAudioHandler extends BaseAudioHandler
   }
 
   void _onDiscontinuity(PositionDiscontinuity discontinuity) {
+    // A song ended by itself: "sleep at end of song" stops here, holding
+    // the next song at its start.
+    if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance &&
+        _sleep.trackEnded()) {
+      unawaited(_player.seek(Duration.zero));
+    }
     // Repeat-one (or a one-song repeat-all) loops without changing index:
     // that is a new listen.
     if (discontinuity.reason == PositionDiscontinuityReason.autoAdvance &&
@@ -449,6 +472,10 @@ class HaraAudioHandler extends BaseAudioHandler
 
   void _onPosition(Duration position) {
     _recorder.positionChanged(position);
+    final duration = _player.duration;
+    if (duration != null && _sleep.state is SleepAtEndOfTrack) {
+      _sleep.trackRemaining(duration - position);
+    }
     if (_player.playing &&
         (position - _lastSavedPosition).abs() >= _savePositionEvery) {
       unawaited(_savePosition());
@@ -491,6 +518,8 @@ class HaraAudioHandler extends BaseAudioHandler
       });
     }
     if (state.processingState == ProcessingState.completed) {
+      // The last song ended: an end-of-song sleep timer is done too.
+      _sleep.trackEnded();
       // End of the queue (repeat off): back to the start, paused.
       _recorder.trackEnded();
       await _player.pause();

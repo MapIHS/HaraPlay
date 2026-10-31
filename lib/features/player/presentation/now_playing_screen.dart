@@ -16,6 +16,7 @@ import '../domain/queue_song.dart';
 import 'player_providers.dart';
 import 'queue_sheet.dart';
 import 'seek_bar.dart';
+import 'sleep_timer_sheet.dart';
 import 'song_actions_sheet.dart';
 
 /// "Playing from …" text for the top bar.
@@ -140,14 +141,22 @@ class NowPlayingScreen extends ConsumerWidget {
           const SizedBox(height: HaraSpacing.md),
           _TransportControls(status: status),
           const SizedBox(height: HaraSpacing.sm),
-          Center(
-            child: HaraButton(
-              label: 'Up next · ${status.upcomingCount}',
-              icon: HaraIcons.listMusic,
-              variant: HaraButtonVariant.ghost,
-              size: HaraButtonSize.small,
-              onPressed: () => showQueueSheet(context),
-            ),
+          // Bottom actions: sleep timer and the queue. They wrap onto two
+          // lines when a long countdown chip doesn't fit next to the queue.
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: HaraSpacing.sm,
+            children: [
+              const SleepTimerButton(),
+              HaraButton(
+                label: 'Up next · ${status.upcomingCount}',
+                icon: HaraIcons.listMusic,
+                variant: HaraButtonVariant.ghost,
+                size: HaraButtonSize.small,
+                onPressed: () => showQueueSheet(context),
+              ),
+            ],
           ),
           const SizedBox(height: HaraSpacing.sm),
         ],

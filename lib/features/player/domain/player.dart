@@ -1,5 +1,6 @@
 import '../../../core/database/app_database.dart';
 import 'queue_song.dart';
+import 'sleep_timer_state.dart';
 
 /// What the UI can do with playback. Implemented by `HaraAudioHandler`;
 /// widget tests use a fake.
@@ -51,4 +52,17 @@ abstract interface class Player {
 
   /// Plays the entry at [index] from its start.
   Future<void> skipTo(int index);
+
+  // Sleep timer.
+
+  /// The sleep timer's state, current state first.
+  Stream<SleepTimerState> get sleepTimer;
+
+  /// Pauses after [duration], fading out over the last seconds.
+  void startSleepTimer(Duration duration);
+
+  /// Pauses when the current song ends by itself.
+  void sleepAtEndOfTrack();
+
+  void cancelSleepTimer();
 }

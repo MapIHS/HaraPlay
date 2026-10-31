@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:clock/clock.dart';
 import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
@@ -13,6 +14,7 @@ import 'package:haraplay/features/onboarding/data/media_permission_service.dart'
 import 'package:haraplay/features/player/domain/player.dart';
 import 'package:haraplay/features/player/domain/queue_model.dart';
 import 'package:haraplay/features/player/domain/queue_song.dart';
+import 'package:haraplay/features/player/domain/sleep_timer_state.dart';
 
 /// Permission service whose answers are scripted by the test.
 class FakeMediaPermissionService implements MediaPermissionService {
@@ -122,6 +124,30 @@ class FakeArtworkCache extends ArtworkCache {
 /// Records what the UI asks the player to do. Queue edits run on a real
 /// [QueueModel], so widget tests see the same queue the app would.
 class FakePlayer implements Player {
+  final _sleep = StreamController<SleepTimerState>.broadcast();
+  SleepTimerState sleepState = const SleepTimerOff();
+
+  void _setSleep(SleepTimerState state) {
+    sleepState = state;
+    _sleep.add(state);
+  }
+
+  @override
+  Stream<SleepTimerState> get sleepTimer async* {
+    yield sleepState;
+    yield* _sleep.stream;
+  }
+
+  @override
+  void startSleepTimer(Duration duration) =>
+      _setSleep(SleepCountdown(endsAt: clock.now().add(duration)));
+
+  @override
+  void sleepAtEndOfTrack() => _setSleep(const SleepAtEndOfTrack());
+
+  @override
+  void cancelSleepTimer() => _setSleep(const SleepTimerOff());
+
   final _status = StreamController<PlaybackStatus>.broadcast();
   final _position = StreamController<Duration>.broadcast();
   PlaybackStatus _current = PlaybackStatus.idle;

@@ -87,10 +87,12 @@ class HaraButton extends StatelessWidget {
             onTap: onPressed,
             borderRadius: BorderRadius.circular(HaraRadius.md),
             child: Container(
-              height: height,
+              // No visible box, so the touch target can be full size.
+              height: HaraSizes.minTouchTarget,
               padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.md),
-              alignment: Alignment.center,
-              child: content,
+              // Sized to its label unless [expand]: an aligned Container
+              // would stretch to the full width it is offered.
+              child: Center(widthFactor: expand ? null : 1, child: content),
             ),
           ),
         ),
