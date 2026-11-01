@@ -11,6 +11,7 @@ abstract final class HaraIcons {
   static const IconData arrowLeft = IconData(0xe048, fontFamily: _family);
   static const IconData arrowUpDown = IconData(0xe37d, fontFamily: _family);
   static const IconData audioLines = IconData(0xe55a, fontFamily: _family);
+  static const IconData blend = IconData(0xe59c, fontFamily: _family);
   static const IconData chartColumn = IconData(0xe2a3, fontFamily: _family);
   static const IconData check = IconData(0xe06c, fontFamily: _family);
   static const IconData chevronDown = IconData(0xe06d, fontFamily: _family);
@@ -73,6 +74,7 @@ abstract final class HaraIcons {
     'arrow-left': arrowLeft,
     'arrow-up-down': arrowUpDown,
     'audio-lines': audioLines,
+    'blend': blend,
     'chart-column': chartColumn,
     'check': check,
     'chevron-down': chevronDown,

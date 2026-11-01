@@ -99,3 +99,46 @@ class JustAudioEffects implements AudioEffectsSink {
     }
   }
 }
+
+/// Applies the same settings to several players' effects (the main player
+/// and the crossfade's tail player). A sink added later gets the latest
+/// settings straight away.
+class AudioEffectsGroup implements AudioEffectsSink {
+  AudioEffectsGroup(List<AudioEffectsSink> sinks) : _sinks = [...sinks];
+
+  final List<AudioEffectsSink> _sinks;
+  ({bool equalizerEnabled, List<double> gains, double loudnessDb})? _latest;
+
+  Future<void> add(AudioEffectsSink sink) async {
+    _sinks.add(sink);
+    final latest = _latest;
+    if (latest != null) {
+      await sink.apply(
+        equalizerEnabled: latest.equalizerEnabled,
+        gains: latest.gains,
+        loudnessDb: latest.loudnessDb,
+      );
+    }
+  }
+
+  @override
+  Future<void> apply({
+    required bool equalizerEnabled,
+    required List<double> gains,
+    required double loudnessDb,
+  }) async {
+    _latest = (
+      equalizerEnabled: equalizerEnabled,
+      gains: gains,
+      loudnessDb: loudnessDb,
+    );
+    await Future.wait([
+      for (final sink in [..._sinks])
+        sink.apply(
+          equalizerEnabled: equalizerEnabled,
+          gains: gains,
+          loudnessDb: loudnessDb,
+        ),
+    ]);
+  }
+}

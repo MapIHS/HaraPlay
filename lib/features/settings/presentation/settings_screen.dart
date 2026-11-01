@@ -12,6 +12,7 @@ import '../../audio_info/domain/audio_info.dart';
 import '../../audio_info/presentation/replay_gain_controller.dart';
 import '../../equalizer/presentation/equalizer_controller.dart';
 import '../../equalizer/presentation/equalizer_screen.dart';
+import '../../player/presentation/crossfade_controller.dart';
 import 'choice_sheet.dart';
 import 'color_choice_picker.dart';
 import 'library_settings.dart';
@@ -51,6 +52,7 @@ class SettingsScreen extends StatelessWidget {
           const SectionHeader(title: 'Playback'),
           const _EqualizerTile(),
           const _ReplayGainTile(),
+          const _CrossfadeTiles(),
           const SectionHeader(title: 'Library'),
           const LibrarySettings(),
           const SectionHeader(title: 'About'),
@@ -143,4 +145,55 @@ class _ReplayGainSheet extends ConsumerWidget {
         description: replayGainDescription,
         onSelected: ref.read(replayGainProvider.notifier).set,
       );
+}
+
+class _CrossfadeTiles extends ConsumerWidget {
+  const _CrossfadeTiles();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(crossfadeProvider);
+    final controller = ref.read(crossfadeProvider.notifier);
+    final seconds = settings.length.inSeconds;
+    return Column(
+      children: [
+        SettingsTile(
+          icon: HaraIcons.blend,
+          title: 'Crossfade',
+          subtitle: seconds == 0
+              ? 'Off: songs follow each other gaplessly'
+              : '${crossfadeLabel(seconds)} · Songs blend into each other',
+          onTap: () => showHaraSheet<void>(
+            context: context,
+            title: 'Crossfade',
+            builder: (_) => ChoiceSheet<int>(
+              intro:
+                  'The end of a song fades out while the next one fades in. '
+                  'Tracks of the same album played in order (with real album '
+                  'tags and track numbers) stay gapless.',
+              options: crossfadeChoices,
+              selected: seconds,
+              label: crossfadeLabel,
+              onSelected: controller.setLength,
+            ),
+          ),
+        ),
+        if (seconds > 0)
+          MergeSemantics(
+            child: SettingsTile(
+              icon: HaraIcons.skipForward,
+              title: 'Crossfade when skipping',
+              subtitle: settings.onSkip
+                  ? 'Skipping to the next song fades too'
+                  : 'Skipping cuts straight to the next song',
+              onTap: () => controller.setOnSkip(!settings.onSkip),
+              trailing: Switch(
+                value: settings.onSkip,
+                onChanged: controller.setOnSkip,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }

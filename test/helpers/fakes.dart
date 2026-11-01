@@ -17,6 +17,7 @@ import 'package:haraplay/features/library/data/tag_merge.dart';
 import 'package:haraplay/features/lyrics/data/lyrics_loader.dart';
 import 'package:haraplay/features/lyrics/domain/lyrics.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
+import 'package:haraplay/features/player/domain/crossfade_settings.dart';
 import 'package:haraplay/features/player/domain/player.dart';
 import 'package:haraplay/features/player/domain/queue_model.dart';
 import 'package:haraplay/features/player/domain/queue_song.dart';
@@ -329,6 +330,11 @@ class FakePlayer implements Player {
     _index = index;
     _emitQueue();
   }
+
+  CrossfadeSettings crossfade = crossfadeOff;
+
+  @override
+  void setCrossfade(CrossfadeSettings settings) => crossfade = settings;
 
   @override
   Future<void> setSpeed(double speed) async =>

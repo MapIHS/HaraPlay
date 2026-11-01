@@ -12,12 +12,16 @@ class SettingsTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
+
+  /// Shown instead of the chevron (e.g. a switch).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +53,9 @@ class SettingsTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onTap != null)
+              if (trailing != null)
+                trailing!
+              else if (onTap != null)
                 Icon(
                   HaraIcons.chevronRight,
                   size: HaraSizes.iconSmall,

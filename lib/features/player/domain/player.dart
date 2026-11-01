@@ -1,5 +1,6 @@
 import '../../../core/database/app_database.dart';
 import '../../audio_info/domain/audio_info.dart';
+import 'crossfade_settings.dart';
 import 'queue_song.dart';
 import 'sleep_timer_state.dart';
 
@@ -75,6 +76,10 @@ abstract interface class Player {
 
   /// Evens out loudness with the songs' ReplayGain tags (A5).
   void setReplayGainMode(ReplayGainMode mode);
+
+  /// Crossfade between songs (A8). Zero length (the default) is off: one
+  /// player, gapless as before.
+  void setCrossfade(CrossfadeSettings settings);
 
   /// Playback speed, 0.5–2 (pitch is kept). See [PlaybackStatus.speed].
   Future<void> setSpeed(double speed);

@@ -29,8 +29,15 @@ class PlayerVolume {
 
   ReplayGainMode get mode => _mode;
 
+  /// The crossfade's ramp on the main player (1 = none).
+  double _ramp = 1;
+
   /// The volume sent to the player.
-  double get volume => _fade * _gain;
+  double get volume => _fade * _gain * _ramp;
+
+  /// The volume without the crossfade ramp: what the outgoing song's tail
+  /// plays at on the crossfade's second player.
+  double get unramped => _fade * _gain;
 
   Future<void> setMode(ReplayGainMode mode) async {
     if (mode == _mode) return;
@@ -42,6 +49,12 @@ class PlayerVolume {
   /// From the sleep timer (1 = no fade).
   Future<void> setFade(double fade) {
     _fade = fade.clamp(0.0, 1.0);
+    return _apply();
+  }
+
+  /// From the crossfader.
+  Future<void> setRamp(double ramp) {
+    _ramp = ramp.clamp(0.0, 1.0);
     return _apply();
   }
 

@@ -3,6 +3,7 @@
 arrow-left
 arrow-up-down
 audio-lines
+blend
 chart-column
 check
 chevron-down

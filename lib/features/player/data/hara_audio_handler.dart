@@ -10,11 +10,13 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/queue_state_dao.dart';
 import '../../audio_info/data/audio_info_repository.dart';
 import '../../audio_info/domain/audio_info.dart';
+import '../domain/crossfade_settings.dart';
 import '../domain/player.dart';
 import '../domain/queue_model.dart';
 import '../domain/queue_restore.dart';
 import '../domain/queue_song.dart';
 import '../domain/sleep_timer_state.dart';
+import 'crossfade.dart';
 import 'play_event_recorder.dart';
 import 'player_volume.dart';
 import 'sleep_timer.dart';
@@ -38,6 +40,7 @@ class HaraAudioHandler extends BaseAudioHandler
     this.pausedTimeout = const Duration(minutes: 10),
     Future<void> Function()? releaseForeground,
     this._audioInfo,
+    this._tailPlayer,
   }) : _random = random ?? Random(),
        _releaseForeground = releaseForeground ?? (() async {}) {
     _subscriptions.addAll([
@@ -82,6 +85,13 @@ class HaraAudioHandler extends BaseAudioHandler
   final ArtworkCache _artwork;
   final QueueStateDao? _queueStore;
   final AudioInfoSource? _audioInfo;
+
+  /// Makes the crossfade's second player; null disables crossfade.
+  final TailPlayer Function()? _tailPlayer;
+  late final Crossfader? _crossfader = switch (_tailPlayer) {
+    final make? => Crossfader(host: _CrossfadeHost(this), tailPlayer: make),
+    null => null,
+  };
   final Random _random;
   final _subscriptions = <StreamSubscription<Object?>>[];
 
@@ -140,6 +150,7 @@ class HaraAudioHandler extends BaseAudioHandler
     String? sourceLabel,
     bool? shuffle,
   }) async {
+    await _crossfader?.cancel();
     if (songs.isEmpty) return;
     // Even replaying the same song starts a new listen.
     _recorder.trackChanged(null, source: source);
@@ -285,6 +296,19 @@ class HaraAudioHandler extends BaseAudioHandler
     if (song.id == resume.songId && resume.position > Duration.zero) {
       unawaited(_player.seek(resume.position));
     }
+  }
+
+  @override
+  void setCrossfade(CrossfadeSettings settings) =>
+      _crossfader?.configure(settings);
+
+  /// The song a crossfade would lead into: the one that follows by itself,
+  /// except under repeat one or when the sleep timer stops after this song.
+  QueueSong? get _crossfadeNext {
+    if (_repeat == RepeatSetting.one || _sleep.state is SleepAtEndOfTrack) {
+      return null;
+    }
+    return _upcomingSong;
   }
 
   @override
@@ -482,6 +506,7 @@ class HaraAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> seek(Duration position) async {
+    await _crossfader?.cancel();
     await _player.seek(position);
     unawaited(_savePosition());
   }
@@ -489,11 +514,31 @@ class HaraAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToNext() async {
     final next = _neighbour(1);
+    final current = _currentSong;
+    final crossfader = _crossfader;
+    if (crossfader != null && current != null) {
+      // "Crossfade on skip": the tail player finishes this song's fade.
+      if (await crossfader.skip(
+        current: current,
+        next: next == null ? null : _songs[next],
+      )) {
+        return;
+      }
+      await crossfader.cancel();
+    }
+    if (next != null) await _player.seek(Duration.zero, index: next);
+  }
+
+  /// The crossfader's jump: the main player moves on while the tail player
+  /// fades out the song it left.
+  Future<void> _jumpForCrossfade() async {
+    final next = _neighbour(1);
     if (next != null) await _player.seek(Duration.zero, index: next);
   }
 
   @override
   Future<void> skipToPrevious() async {
+    await _crossfader?.cancel();
     final previous = _neighbour(-1);
     if (_player.position > _restartThreshold || previous == null) {
       _recorder.trackRestarted();
@@ -536,6 +581,7 @@ class HaraAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToQueueItem(int index) async {
     if (index < 0 || index >= _songs.length) return;
+    await _crossfader?.cancel();
     await _player.seek(Duration.zero, index: index);
   }
 
@@ -554,6 +600,7 @@ class HaraAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> stop() async {
+    await _crossfader?.cancel();
     await _savePosition();
     await _player.stop();
     await _recorder.flush();
@@ -567,6 +614,7 @@ class HaraAudioHandler extends BaseAudioHandler
       await s.cancel();
     }
     await _recorder.flush();
+    await _crossfader?.dispose();
     await _player.dispose();
     await _status.close();
   }
@@ -615,6 +663,11 @@ class HaraAudioHandler extends BaseAudioHandler
   void _onPosition(Duration position) {
     _recorder.positionChanged(position);
     final duration = _player.duration;
+    _crossfader?.onPosition(
+      current: _currentSong,
+      next: _crossfadeNext,
+      duration: duration ?? Duration.zero,
+    );
     if (duration != null && _sleep.state is SleepAtEndOfTrack) {
       _sleep.trackRemaining(duration - position);
     }
@@ -641,6 +694,16 @@ class HaraAudioHandler extends BaseAudioHandler
 
   Future<void> _onPlayerState(PlayerState state) async {
     final ready = state.processingState == ProcessingState.ready;
+    // Pauses from anywhere (button, focus loss, unplugged headphones)
+    // pause a fade in progress too.
+    final crossfader = _crossfader;
+    if (crossfader != null) {
+      unawaited(
+        state.playing
+            ? crossfader.onPlay(() => crossfader.currentLength)
+            : crossfader.onPause(),
+      );
+    }
     if (ready) _errorSkips = 0;
     _recorder.activeChanged(state.playing && ready);
     _publishStatus();
@@ -824,4 +887,26 @@ class HaraAudioHandler extends BaseAudioHandler
     duration: song.duration,
     extras: {'songId': song.id},
   );
+}
+
+/// The main player as the crossfader sees it.
+class _CrossfadeHost implements CrossfadeHost {
+  _CrossfadeHost(this._handler);
+
+  final HaraAudioHandler _handler;
+
+  @override
+  Duration get position => _handler._player.position;
+
+  @override
+  bool get playing => _handler._player.playing;
+
+  @override
+  double get outgoingVolume => _handler._volume.unramped;
+
+  @override
+  Future<void> setRamp(double ramp) => _handler._volume.setRamp(ramp);
+
+  @override
+  Future<void> jumpToNext() => _handler._jumpForCrossfade();
 }

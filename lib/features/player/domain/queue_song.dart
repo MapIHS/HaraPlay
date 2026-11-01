@@ -13,6 +13,9 @@ class QueueSong {
     this.album,
     this.albumId,
     this.contentUri,
+    this.trackNumber,
+    this.discNumber,
+    this.taggedAlbum,
   });
 
   /// A file opened from another app ("Open with") that is not in the
@@ -48,6 +51,9 @@ class QueueSong {
     path: row.path,
     duration: Duration(milliseconds: row.durationMs),
     version: row.dateModified,
+    trackNumber: row.trackNumber,
+    discNumber: row.discNumber,
+    taggedAlbum: realAlbumTag(row.album, folderName: row.folderName),
   );
 
   final int id;
@@ -63,6 +69,13 @@ class QueueSong {
 
   /// Set for [QueueSong.external] songs only.
   final Uri? contentUri;
+
+  final int? trackNumber;
+  final int? discNumber;
+
+  /// The album tag when it is a real one (see [realAlbumTag]); crossfade
+  /// keeps consecutive tracks of a real album gapless.
+  final String? taggedAlbum;
 
   /// Opened from another app and not in the library.
   bool get isExternal => id < 0;
@@ -171,4 +184,14 @@ extension PlaybackNeighbours on PlaybackStatus {
     step: step,
     wrap: repeat == RepeatSetting.all,
   );
+}
+
+/// [album] if it is a real album tag: not missing, and not just the
+/// folder's name (MediaStore names untagged files' album after their
+/// folder). Compared case-insensitively.
+String? realAlbumTag(String? album, {required String folderName}) {
+  final name = album?.trim();
+  if (name == null || name.isEmpty) return null;
+  if (name.toLowerCase() == folderName.trim().toLowerCase()) return null;
+  return name;
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -24,7 +26,9 @@ import 'features/onboarding/data/onboarding_repository.dart';
 import 'features/onboarding/presentation/onboarding_controllers.dart';
 import 'features/open_with/data/open_with.dart';
 import 'features/player/data/hara_audio_handler.dart';
+import 'features/player/data/just_audio_tail_player.dart';
 import 'features/player/data/play_event_recorder.dart';
+import 'features/player/presentation/crossfade_controller.dart';
 import 'features/player/presentation/playback_speed.dart';
 import 'features/player/presentation/player_providers.dart';
 import 'features/settings/presentation/color_choice_controller.dart';
@@ -55,7 +59,12 @@ Future<void> bootstrap() async {
   final effectsInfo = await probeAudioEffects();
   final equalizer = effectsInfo.equalizer == null ? null : AndroidEqualizer();
   final loudness = effectsInfo.loudness ? AndroidLoudnessEnhancer() : null;
-  final effects = JustAudioEffects(equalizer: equalizer, loudness: loudness);
+  // The crossfade's tail player gets its own copies of the effects
+  // (an effect belongs to one player's audio session); the group keeps
+  // their settings in step.
+  final effects = AudioEffectsGroup([
+    JustAudioEffects(equalizer: equalizer, loudness: loudness),
+  ]);
   await applyEqualizerSettings(
     loadEqualizerSettings(preferences),
     effectsInfo,
@@ -74,6 +83,15 @@ Future<void> bootstrap() async {
       artwork: artwork,
       queueStore: database.queueStateDao,
       audioInfo: audioInfo,
+      // Only made once crossfade is first used.
+      tailPlayer: () {
+        final eq = effectsInfo.equalizer == null ? null : AndroidEqualizer();
+        final boost = effectsInfo.loudness ? AndroidLoudnessEnhancer() : null;
+        unawaited(
+          effects.add(JustAudioEffects(equalizer: eq, loudness: boost)),
+        );
+        return JustAudioTailPlayer(effects: [?eq, ?boost]);
+      },
       // Overridable for device checks:
       // --dart-define=HARAPLAY_PAUSED_TIMEOUT_S=30
       releaseForeground: () async {
@@ -105,6 +123,7 @@ Future<void> bootstrap() async {
   await handler.configureSession();
   handler.setReplayGainMode(loadReplayGainMode(preferences));
   await handler.setSpeed(loadPlaybackSpeed(preferences));
+  handler.setCrossfade(loadCrossfade(preferences));
 
   final container = ProviderContainer(
     overrides: [
