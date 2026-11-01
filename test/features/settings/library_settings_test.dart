@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
 import 'package:haraplay/features/library/presentation/rescan.dart';
@@ -28,6 +29,10 @@ void main() {
   });
 
   testWidgets('the minimum length can be changed and persists', (tester) async {
+    final view = tester.view
+      ..physicalSize = const Size(1080, 2400)
+      ..devicePixelRatio = 3;
+    addTearDown(view.reset);
     await pumpHaraApp(tester);
     await openSettings(tester);
     expect(find.text('Hides files shorter than 30 s'), findsOneWidget);

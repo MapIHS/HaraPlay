@@ -3,12 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/media_store_channel.dart';
+import 'package:haraplay/core/storage/preferences.dart';
 import 'package:haraplay/features/library/data/library_sync_service.dart';
 import 'package:haraplay/features/library/data/tag_enrichment_service.dart';
 import 'package:haraplay/features/library/presentation/library_providers.dart';
 import 'package:haraplay/features/player/presentation/player_providers.dart';
 
 import '../../helpers/fakes.dart';
+import '../../helpers/test_app.dart';
 import '../../helpers/test_database.dart';
 
 void main() {
@@ -19,6 +21,10 @@ void main() {
     final player = FakePlayer();
     final container = ProviderContainer(
       overrides: [
+        // Each sync reads the excluded folders from the settings.
+        sharedPreferencesProvider.overrideWithValue(
+          await createTestPreferences(),
+        ),
         appDatabaseProvider.overrideWithValue(db),
         mediaSourceProvider.overrideWithValue(source),
         playerProvider.overrideWithValue(player),

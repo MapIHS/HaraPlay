@@ -38,7 +38,7 @@ class HomeDao extends DatabaseAccessor<AppDatabase> with _$HomeDaoMixin {
     '  FROM play_events e WHERE e.song_id IS NOT NULL AND $countsAsPlaySql '
     '  GROUP BY e.song_id'
     ') p ON p.song_id = s.id '
-    'WHERE s.duration_ms >= ? '
+    'WHERE s.duration_ms >= ? AND s.excluded = 0 '
     'ORDER BY p.last_played DESC LIMIT ?',
     variables: [Variable.withInt(minDurationMs), Variable.withInt(limit)],
     readsFrom: {songs, playEvents},
@@ -55,7 +55,7 @@ class HomeDao extends DatabaseAccessor<AppDatabase> with _$HomeDaoMixin {
             '  FROM play_events e WHERE e.song_id IS NOT NULL AND $countsAsPlaySql '
             '  GROUP BY e.song_id'
             ') p ON p.song_id = s.id '
-            'WHERE s.duration_ms >= ? '
+            'WHERE s.duration_ms >= ? AND s.excluded = 0 '
             'ORDER BY p.plays DESC, p.last_played DESC LIMIT ?',
             variables: [
               Variable.withInt(minDurationMs),

@@ -20,6 +20,7 @@ import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/playlists/presentation/playlist_detail_screen.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
 import '../features/search/presentation/search_screen.dart';
+import '../features/settings/presentation/excluded_folders_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 import 'shell/app_shell.dart';
@@ -35,6 +36,7 @@ abstract final class AppRoutes {
   static const settings = '/settings';
   static const stats = '/stats';
   static const equalizer = '/equalizer';
+  static const excludedFolders = '/settings/excluded-folders';
   static const designGallery = '/settings/gallery';
   static const mediaStoreDebug = '/settings/media-store';
   static const libraryDatabaseDebug = '/settings/library-database';
@@ -216,6 +218,11 @@ GoRouter createRouter({
         path: AppRoutes.equalizer,
         parentNavigatorKey: rootKey,
         builder: (context, state) => const EqualizerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.excludedFolders,
+        parentNavigatorKey: rootKey,
+        builder: (context, state) => const ExcludedFoldersScreen(),
       ),
       GoRoute(
         path: AppRoutes.stats,

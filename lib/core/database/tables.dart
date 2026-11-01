@@ -59,6 +59,11 @@ class Songs extends Table {
   BoolColumn get nameFromFilename =>
       boolean().withDefault(const Constant(false))();
 
+  /// In a folder the user excluded (schema v5). Hidden like short audio:
+  /// not in Library, Home or Search, but kept in Liked songs and playlists.
+  /// Set by `LibraryDao.applyExclusions`.
+  BoolColumn get excluded => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

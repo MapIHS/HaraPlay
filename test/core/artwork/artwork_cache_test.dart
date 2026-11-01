@@ -7,6 +7,9 @@ import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
 
 class _CountingSource implements MediaSource {
+  @override
+  Stream<void> get changes => const Stream.empty();
+
   _CountingSource(this.art);
 
   final Map<int, Uint8List?> art;

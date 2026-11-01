@@ -17,6 +17,7 @@ import 'features/audio_info/data/audio_info_repository.dart';
 import 'features/audio_info/presentation/replay_gain_controller.dart';
 import 'features/equalizer/data/audio_effects.dart';
 import 'features/equalizer/presentation/equalizer_controller.dart';
+import 'features/library/data/auto_rescan.dart';
 import 'features/library/presentation/library_providers.dart';
 import 'features/onboarding/data/media_permission_service.dart';
 import 'features/onboarding/data/onboarding_repository.dart';
@@ -129,6 +130,8 @@ Future<void> bootstrap() async {
     started = true;
     // Last session's queue comes back paused, at the saved position.
     handler.restore().ignore();
+    // Rescan by itself when music files change while the app runs.
+    container.read(autoRescanProvider);
     if (OnboardingRepository(preferences).readCompleted()) {
       container.read(librarySyncControllerProvider.notifier).sync().ignore();
     }

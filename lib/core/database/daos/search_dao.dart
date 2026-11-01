@@ -36,7 +36,7 @@ class SearchDao extends DatabaseAccessor<AppDatabase> with _$SearchDaoMixin {
       r"search_text LIKE ? ESCAPE '\'",
     ).join(' AND ');
     final rows = await customSelect(
-      'SELECT * FROM songs WHERE duration_ms >= ? AND $likes '
+      'SELECT * FROM songs WHERE duration_ms >= ? AND excluded = 0 AND $likes '
       "ORDER BY search_text LIKE ? ESCAPE '\\' DESC, "
       'title COLLATE NOCASE LIMIT ?',
       variables: [

@@ -7,13 +7,15 @@ import '../app_database.dart';
 part 'browse_dao.g.dart';
 
 /// Read-only library queries for the browse screens. Every query hides songs
-/// shorter than [minDurationMs] (the "Hide short audio" setting).
+/// shorter than [minDurationMs] (the "Hide short audio" setting) and songs
+/// in excluded folders.
 @DriftAccessor(tables: [Songs])
 class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
   BrowseDao(super.attachedDatabase);
 
   Expression<bool> _visible(int minDurationMs) =>
-      songs.durationMs.isBiggerOrEqualValue(minDurationMs);
+      songs.durationMs.isBiggerOrEqualValue(minDurationMs) &
+      songs.excluded.equals(false);
 
   Stream<List<SongRow>> watchSongs(
     LibrarySort<SongSortField> sort, {
@@ -47,7 +49,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     LibrarySort<AlbumSortField> sort, {
     required int minDurationMs,
   }) => _albums(
-    where: 'duration_ms >= ?',
+    where: 'duration_ms >= ? AND excluded = 0',
     variables: [Variable.withInt(minDurationMs)],
     sort: sort,
   ).watch();
@@ -58,7 +60,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     required int minDurationMs,
   }) => _albums(
     where:
-        'duration_ms >= ? AND album_id IN (SELECT album_id FROM songs '
+        'duration_ms >= ? AND excluded = 0 AND album_id IN (SELECT album_id FROM songs '
         'WHERE ${artist == null ? 'artist IS NULL' : 'artist = ?'})',
     variables: [
       Variable.withInt(minDurationMs),
@@ -72,7 +74,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     required int minDurationMs,
     int limit = 12,
   }) => _albums(
-    where: 'duration_ms >= ?',
+    where: 'duration_ms >= ? AND excluded = 0',
     variables: [Variable.withInt(minDurationMs)],
     sort: const LibrarySort(AlbumSortField.title),
     order: 'g.added DESC',
@@ -81,7 +83,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
 
   Stream<AlbumSummary?> watchAlbum(int albumId, {required int minDurationMs}) =>
       _albums(
-        where: 'duration_ms >= ? AND album_id = ?',
+        where: 'duration_ms >= ? AND excluded = 0 AND album_id = ?',
         variables: [Variable.withInt(minDurationMs), Variable.withInt(albumId)],
         sort: const LibrarySort(AlbumSortField.title),
       ).watchSingleOrNull();
@@ -153,7 +155,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
       'c.date_modified AS cover_version FROM ('
       '  SELECT artist AS name, COUNT(*) AS song_count, '
       '  COUNT(DISTINCT album_id) AS album_count, MIN(id) AS cover_id '
-      '  FROM songs WHERE duration_ms >= ? GROUP BY artist'
+      '  FROM songs WHERE duration_ms >= ? AND excluded = 0 GROUP BY artist'
       ') g JOIN songs c ON c.id = g.cover_id '
       'ORDER BY $order, g.name COLLATE NOCASE',
       variables: [Variable.withInt(minDurationMs)],
@@ -184,7 +186,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     };
     return customSelect(
       'SELECT folder_path AS path, MAX(folder_name) AS name, '
-      'COUNT(*) AS song_count FROM songs WHERE duration_ms >= ? '
+      'COUNT(*) AS song_count FROM songs WHERE duration_ms >= ? AND excluded = 0 '
       'GROUP BY folder_path ORDER BY $order, path',
       variables: [Variable.withInt(minDurationMs)],
       readsFrom: {songs},
@@ -212,7 +214,7 @@ class BrowseDao extends DatabaseAccessor<AppDatabase> with _$BrowseDaoMixin {
     };
     return customSelect(
       'SELECT genre AS name, COUNT(*) AS song_count FROM songs '
-      'WHERE duration_ms >= ? AND genre IS NOT NULL '
+      'WHERE duration_ms >= ? AND excluded = 0 AND genre IS NOT NULL '
       'GROUP BY genre ORDER BY $order, name COLLATE NOCASE',
       variables: [Variable.withInt(minDurationMs)],
       readsFrom: {songs},

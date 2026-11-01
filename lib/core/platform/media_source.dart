@@ -14,4 +14,8 @@ abstract interface class MediaSource {
     int? albumId,
     required int sizePx,
   });
+
+  /// Fires when music files were added, removed or changed on the device
+  /// (after changes have settled for a moment).
+  Stream<void> get changes;
 }

@@ -243,13 +243,52 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
     updateKind: UpdateKind.update,
   );
 
+  /// Marks the songs in [folders] (and their subfolders) as excluded and
+  /// clears the mark everywhere else. Only changed rows are written, so
+  /// unchanged queries stay quiet.
+  Future<void> applyExclusions(List<String> folders) {
+    // A prefix match on "folder/" (not LIKE, whose wildcards can appear in
+    // folder names).
+    final inside = folders.isEmpty
+        ? '0'
+        : List.filled(
+            folders.length,
+            '(folder_path = ? OR substr(folder_path, 1, length(?) + 1) = ? || \'/\')',
+          ).join(' OR ');
+    return customUpdate(
+      'UPDATE songs SET excluded = ($inside) WHERE excluded != ($inside)',
+      variables: [
+        for (var pass = 0; pass < 2; pass++)
+          for (final folder in folders) ...[
+            Variable.withString(folder),
+            Variable.withString(folder),
+            Variable.withString(folder),
+          ],
+      ],
+      updates: {songs},
+      updateKind: UpdateKind.update,
+    );
+  }
+
+  /// Every folder that directly holds songs, with its song count (all
+  /// songs, whatever the filters), for the excluded-folders picker.
+  Future<Map<String, int>> songFolders() async {
+    final rows = await customSelect(
+      'SELECT folder_path, COUNT(*) AS n FROM songs GROUP BY folder_path',
+      readsFrom: {songs},
+    ).get();
+    return {
+      for (final r in rows) r.read<String>('folder_path'): r.read<int>('n'),
+    };
+  }
+
   Selectable<LibraryCounts> _counts(int minDurationMs) =>
       customSelect(
         'SELECT COUNT(*) AS songs, '
         'COUNT(DISTINCT album_id) AS albums, '
         'COUNT(DISTINCT folder_path) AS folders, '
         'COALESCE(SUM(duration_ms), 0) AS total_ms '
-        'FROM songs WHERE duration_ms >= ?',
+        'FROM songs WHERE duration_ms >= ? AND excluded = 0',
         variables: [Variable.withInt(minDurationMs)],
         readsFrom: {songs},
       ).map(
@@ -338,6 +377,9 @@ SongRow songRowFrom(MediaStoreSong song, {SongTags? fileTags}) {
     year: tags.year,
     durationMs: song.duration.inMilliseconds,
     sizeBytes: song.sizeBytes,
+    // Set from the excluded folders right after the scan, in the same
+    // transaction (LibrarySyncService).
+    excluded: false,
     mimeType: song.mimeType,
     path: song.path,
     folderPath: song.folderPath,

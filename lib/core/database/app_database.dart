@@ -50,9 +50,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// v1: M4 schema. v2: songs.name_from_filename.
   /// v3: queue_state.source_label. v4: song_tech_info recreated with
-  /// ReplayGain and the file version.
+  /// ReplayGain and the file version. v5: songs.excluded.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +66,7 @@ class AppDatabase extends _$AppDatabase {
         await m.deleteTable(songTechInfo.actualTableName);
         await m.createTable(songTechInfo);
       }
+      if (from < 5) await m.addColumn(songs, songs.excluded);
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -13,6 +13,7 @@ class SettingsRepository {
 
   static const _themeModeKey = 'settings.themeMode';
   static const _colorChoiceKey = 'settings.colorChoice';
+  static const _excludedFoldersKey = 'library.excludedFolders';
   static const _minSongLengthKey = 'settings.minSongLengthSeconds';
 
   /// Choices for the minimum song length; [Duration.zero] means "off".
@@ -45,6 +46,13 @@ class SettingsRepository {
 
   Future<void> writeColorChoice(ColorChoice choice) =>
       _prefs.setString(_colorChoiceKey, choice.name);
+
+  /// Folders (absolute paths) whose songs are hidden, subfolders included.
+  List<String> readExcludedFolders() =>
+      _prefs.getStringList(_excludedFoldersKey) ?? const [];
+
+  Future<void> writeExcludedFolders(List<String> folders) =>
+      _prefs.setStringList(_excludedFoldersKey, folders);
 
   /// Songs shorter than this are hidden from the library (not deleted).
   Duration readMinSongLength() {

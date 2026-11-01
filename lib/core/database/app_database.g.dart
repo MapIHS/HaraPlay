@@ -230,6 +230,21 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _excludedMeta = const VerificationMeta(
+    'excluded',
+  );
+  @override
+  late final GeneratedColumn<bool> excluded = GeneratedColumn<bool>(
+    'excluded',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("excluded" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -253,6 +268,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
     dateModified,
     searchText,
     nameFromFilename,
+    excluded,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -419,6 +435,12 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
         ),
       );
     }
+    if (data.containsKey('excluded')) {
+      context.handle(
+        _excludedMeta,
+        excluded.isAcceptableOrUnknown(data['excluded']!, _excludedMeta),
+      );
+    }
     return context;
   }
 
@@ -512,6 +534,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}name_from_filename'],
       )!,
+      excluded: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}excluded'],
+      )!,
     );
   }
 
@@ -550,6 +576,11 @@ class SongRow extends DataClass implements Insertable<SongRow> {
 
   /// Artist and title were guessed from the file name (schema v2).
   final bool nameFromFilename;
+
+  /// In a folder the user excluded (schema v5). Hidden like short audio:
+  /// not in Library, Home or Search, but kept in Liked songs and playlists.
+  /// Set by `LibraryDao.applyExclusions`.
+  final bool excluded;
   const SongRow({
     required this.id,
     required this.title,
@@ -572,6 +603,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     required this.dateModified,
     required this.searchText,
     required this.nameFromFilename,
+    required this.excluded,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -617,6 +649,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     map['date_modified'] = Variable<int>(dateModified);
     map['search_text'] = Variable<String>(searchText);
     map['name_from_filename'] = Variable<bool>(nameFromFilename);
+    map['excluded'] = Variable<bool>(excluded);
     return map;
   }
 
@@ -661,6 +694,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       dateModified: Value(dateModified),
       searchText: Value(searchText),
       nameFromFilename: Value(nameFromFilename),
+      excluded: Value(excluded),
     );
   }
 
@@ -691,6 +725,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       dateModified: serializer.fromJson<int>(json['dateModified']),
       searchText: serializer.fromJson<String>(json['searchText']),
       nameFromFilename: serializer.fromJson<bool>(json['nameFromFilename']),
+      excluded: serializer.fromJson<bool>(json['excluded']),
     );
   }
   @override
@@ -718,6 +753,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       'dateModified': serializer.toJson<int>(dateModified),
       'searchText': serializer.toJson<String>(searchText),
       'nameFromFilename': serializer.toJson<bool>(nameFromFilename),
+      'excluded': serializer.toJson<bool>(excluded),
     };
   }
 
@@ -743,6 +779,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     int? dateModified,
     String? searchText,
     bool? nameFromFilename,
+    bool? excluded,
   }) => SongRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -765,6 +802,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     dateModified: dateModified ?? this.dateModified,
     searchText: searchText ?? this.searchText,
     nameFromFilename: nameFromFilename ?? this.nameFromFilename,
+    excluded: excluded ?? this.excluded,
   );
   SongRow copyWithCompanion(SongsCompanion data) {
     return SongRow(
@@ -807,6 +845,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
       nameFromFilename: data.nameFromFilename.present
           ? data.nameFromFilename.value
           : this.nameFromFilename,
+      excluded: data.excluded.present ? data.excluded.value : this.excluded,
     );
   }
 
@@ -833,7 +872,8 @@ class SongRow extends DataClass implements Insertable<SongRow> {
           ..write('dateAdded: $dateAdded, ')
           ..write('dateModified: $dateModified, ')
           ..write('searchText: $searchText, ')
-          ..write('nameFromFilename: $nameFromFilename')
+          ..write('nameFromFilename: $nameFromFilename, ')
+          ..write('excluded: $excluded')
           ..write(')'))
         .toString();
   }
@@ -861,6 +901,7 @@ class SongRow extends DataClass implements Insertable<SongRow> {
     dateModified,
     searchText,
     nameFromFilename,
+    excluded,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -886,7 +927,8 @@ class SongRow extends DataClass implements Insertable<SongRow> {
           other.dateAdded == this.dateAdded &&
           other.dateModified == this.dateModified &&
           other.searchText == this.searchText &&
-          other.nameFromFilename == this.nameFromFilename);
+          other.nameFromFilename == this.nameFromFilename &&
+          other.excluded == this.excluded);
 }
 
 class SongsCompanion extends UpdateCompanion<SongRow> {
@@ -911,6 +953,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
   final Value<int> dateModified;
   final Value<String> searchText;
   final Value<bool> nameFromFilename;
+  final Value<bool> excluded;
   const SongsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
@@ -933,6 +976,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     this.dateModified = const Value.absent(),
     this.searchText = const Value.absent(),
     this.nameFromFilename = const Value.absent(),
+    this.excluded = const Value.absent(),
   });
   SongsCompanion.insert({
     this.id = const Value.absent(),
@@ -956,6 +1000,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     required int dateModified,
     required String searchText,
     this.nameFromFilename = const Value.absent(),
+    this.excluded = const Value.absent(),
   }) : title = Value(title),
        durationMs = Value(durationMs),
        sizeBytes = Value(sizeBytes),
@@ -987,6 +1032,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     Expression<int>? dateModified,
     Expression<String>? searchText,
     Expression<bool>? nameFromFilename,
+    Expression<bool>? excluded,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1010,6 +1056,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
       if (dateModified != null) 'date_modified': dateModified,
       if (searchText != null) 'search_text': searchText,
       if (nameFromFilename != null) 'name_from_filename': nameFromFilename,
+      if (excluded != null) 'excluded': excluded,
     });
   }
 
@@ -1035,6 +1082,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     Value<int>? dateModified,
     Value<String>? searchText,
     Value<bool>? nameFromFilename,
+    Value<bool>? excluded,
   }) {
     return SongsCompanion(
       id: id ?? this.id,
@@ -1058,6 +1106,7 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
       dateModified: dateModified ?? this.dateModified,
       searchText: searchText ?? this.searchText,
       nameFromFilename: nameFromFilename ?? this.nameFromFilename,
+      excluded: excluded ?? this.excluded,
     );
   }
 
@@ -1127,6 +1176,9 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
     if (nameFromFilename.present) {
       map['name_from_filename'] = Variable<bool>(nameFromFilename.value);
     }
+    if (excluded.present) {
+      map['excluded'] = Variable<bool>(excluded.value);
+    }
     return map;
   }
 
@@ -1153,7 +1205,8 @@ class SongsCompanion extends UpdateCompanion<SongRow> {
           ..write('dateAdded: $dateAdded, ')
           ..write('dateModified: $dateModified, ')
           ..write('searchText: $searchText, ')
-          ..write('nameFromFilename: $nameFromFilename')
+          ..write('nameFromFilename: $nameFromFilename, ')
+          ..write('excluded: $excluded')
           ..write(')'))
         .toString();
   }
@@ -5101,6 +5154,7 @@ typedef $$SongsTableCreateCompanionBuilder = SongsCompanion Function({
   required int dateModified,
   required String searchText,
   Value<bool> nameFromFilename,
+  Value<bool> excluded,
 });
 typedef $$SongsTableUpdateCompanionBuilder = SongsCompanion Function({
   Value<int> id,
@@ -5124,6 +5178,7 @@ typedef $$SongsTableUpdateCompanionBuilder = SongsCompanion Function({
   Value<int> dateModified,
   Value<String> searchText,
   Value<bool> nameFromFilename,
+  Value<bool> excluded,
 });
 
 final class $$SongsTableReferences
@@ -5353,6 +5408,11 @@ class $$SongsTableFilterComposer extends Composer<_$AppDatabase, $SongsTable> {
 
   ColumnFilters<bool> get nameFromFilename => $composableBuilder(
     column: $table.nameFromFilename,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get excluded => $composableBuilder(
+    column: $table.excluded,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5620,6 +5680,11 @@ class $$SongsTableOrderingComposer
     column: $table.nameFromFilename,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get excluded => $composableBuilder(
+    column: $table.excluded,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SongsTableAnnotationComposer
@@ -5711,6 +5776,9 @@ class $$SongsTableAnnotationComposer
     column: $table.nameFromFilename,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get excluded =>
+      $composableBuilder(column: $table.excluded, builder: (column) => column);
 
   Expression<T> favoritesRefs<T extends Object>(
     Expression<T> Function($$FavoritesTableAnnotationComposer a) f,
@@ -5919,6 +5987,7 @@ class $$SongsTableTableManager
                 Value<int> dateModified = const Value.absent(),
                 Value<String> searchText = const Value.absent(),
                 Value<bool> nameFromFilename = const Value.absent(),
+                Value<bool> excluded = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
                 title: title,
@@ -5941,6 +6010,7 @@ class $$SongsTableTableManager
                 dateModified: dateModified,
                 searchText: searchText,
                 nameFromFilename: nameFromFilename,
+                excluded: excluded,
               ),
           createCompanionCallback:
               ({
@@ -5965,6 +6035,7 @@ class $$SongsTableTableManager
                 required int dateModified,
                 required String searchText,
                 Value<bool> nameFromFilename = const Value.absent(),
+                Value<bool> excluded = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
                 title: title,
@@ -5987,6 +6058,7 @@ class $$SongsTableTableManager
                 dateModified: dateModified,
                 searchText: searchText,
                 nameFromFilename: nameFromFilename,
+                excluded: excluded,
               ),
           withReferenceMapper: (p0) => p0
               .map(

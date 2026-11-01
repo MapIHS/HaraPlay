@@ -63,9 +63,21 @@ class FakeMediaSource implements MediaSource {
   FakeMediaSource([this.songs = const []]);
 
   List<MediaStoreSong> songs;
+  int queries = 0;
+
+  final _changes = StreamController<void>.broadcast();
+
+  /// Simulates MediaStore reporting a change.
+  void notifyChanged() => _changes.add(null);
 
   @override
-  Future<List<MediaStoreSong>> querySongs() async => songs;
+  Stream<void> get changes => _changes.stream;
+
+  @override
+  Future<List<MediaStoreSong>> querySongs() async {
+    queries++;
+    return songs;
+  }
 
   @override
   Future<Uint8List?> loadArtwork({

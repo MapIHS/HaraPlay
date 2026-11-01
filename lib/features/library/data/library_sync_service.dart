@@ -8,6 +8,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/library_dao.dart';
 import '../../../core/platform/media_source.dart';
 import '../../../core/platform/media_store_channel.dart';
+import '../../settings/presentation/excluded_folders_controller.dart';
 import 'tag_enrichment_service.dart';
 
 /// Mirrors MediaStore into the database, then starts the background tag
@@ -18,6 +19,7 @@ class LibrarySyncService {
     this._dao,
     this._enrichment, [
     this._artwork,
+    this._excludedFolders,
   ]);
 
   final MediaSource _source;
@@ -26,6 +28,9 @@ class LibrarySyncService {
 
   /// Cleaned of covers for deleted or changed songs after each sync.
   final ArtworkCache? _artwork;
+
+  /// The user's excluded folders, marked on the songs after each scan.
+  final List<String> Function()? _excludedFolders;
 
   Future<SyncResult>? _running;
 
@@ -38,7 +43,12 @@ class LibrarySyncService {
     final watch = Stopwatch()..start();
     final scanned = await _source.querySongs();
     final queried = watch.elapsed;
-    final result = await _dao.applyScan(scanned);
+    // One transaction, so excluded songs never flash into view.
+    final result = await _dao.transaction(() async {
+      final result = await _dao.applyScan(scanned);
+      await _dao.applyExclusions(_excludedFolders?.call() ?? const []);
+      return result;
+    });
     if (!kReleaseMode) {
       debugPrint(
         'HaraPlay sync: $result; MediaStore ${queried.inMilliseconds} ms, '
@@ -75,5 +85,6 @@ final librarySyncServiceProvider = Provider<LibrarySyncService>(
     ref.watch(libraryDaoProvider),
     ref.watch(tagEnrichmentServiceProvider),
     ref.watch(artworkCacheProvider),
+    () => ref.read(excludedFoldersProvider),
   ),
 );

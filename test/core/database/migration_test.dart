@@ -3,16 +3,34 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/core/database/app_database.dart';
 
+/// The songs table as schema v2–v4 created it: today's without `excluded`.
+Future<String> songsTableBeforeV5() async {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  final fresh = AppDatabase(NativeDatabase.memory());
+  final create = await fresh
+      .customSelect("SELECT sql FROM sqlite_master WHERE name = 'songs'")
+      .map((r) => r.read<String>('sql'))
+      .getSingle();
+  await fresh.close();
+  return create.replaceFirst(
+    RegExp(
+      r', "excluded" INTEGER NOT NULL DEFAULT 0 CHECK \("excluded" IN \(0, 1\)\)',
+    ),
+    '',
+  );
+}
+
 void main() {
   test(
     'v2 → v3 adds queue_state.source_label and keeps the saved queue',
     () async {
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      final songs = await songsTableBeforeV5();
       final db = AppDatabase(
         NativeDatabase.memory(
           setup: (raw) {
             // queue_state exactly as schema v2 created it, with a saved row.
             raw
+              ..execute(songs)
               ..execute('''
               CREATE TABLE queue_state (
                 id INTEGER NOT NULL CHECK (id = 1),
@@ -52,12 +70,13 @@ void main() {
   );
 
   test('v3 → v4 recreates song_tech_info with ReplayGain columns', () async {
-    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    final songs = await songsTableBeforeV5();
     final db = AppDatabase(
       NativeDatabase.memory(
         setup: (raw) {
           // song_tech_info as schema v1–v3 created it (never written).
           raw
+            ..execute(songs)
             ..execute('''
               CREATE TABLE song_tech_info (
                 song_id INTEGER NOT NULL,
@@ -90,5 +109,29 @@ void main() {
       ]),
     );
     expect(await db.audioInfoDao.cached(1, version: 1), isNull);
+  });
+
+  test('v4 → v5 adds songs.excluded and keeps the library', () async {
+    final v4 = await songsTableBeforeV5();
+    expect(v4, isNot(contains('excluded')));
+
+    final db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw
+            ..execute(v4)
+            ..execute(
+              'INSERT INTO songs (id, title, duration_ms, size_bytes, path, '
+              'folder_path, folder_name, date_added, date_modified, '
+              "search_text) VALUES (1, 'A', 1000, 1, '/m/a.mp3', '/m', 'm', "
+              "0, 0, 'a')",
+            )
+            ..userVersion = 4;
+        },
+      ),
+    );
+    addTearDown(db.close);
+    final song = await db.select(db.songs).getSingle();
+    expect(song.excluded, isFalse);
   });
 }

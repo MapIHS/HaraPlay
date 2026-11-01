@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +10,17 @@ import 'media_store_song.dart';
 /// Dart side of the `haraplay/media` channel (see `MediaStorePlugin.kt`).
 class MediaStoreChannel implements MediaSource {
   MediaStoreChannel({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('haraplay/media');
+    : _channel = channel ?? const MethodChannel('haraplay/media') {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'mediaChanged') _changes.add(null);
+    });
+  }
 
   final MethodChannel _channel;
+  final _changes = StreamController<void>.broadcast();
+
+  @override
+  Stream<void> get changes => _changes.stream;
 
   /// Android API level, e.g. 28 for Android 9.
   Future<int> sdkInt() async => await _channel.invokeMethod<int>('sdkInt') ?? 0;
