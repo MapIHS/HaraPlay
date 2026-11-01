@@ -76,6 +76,15 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Every song's path by ID, hidden songs included (`.m3u` import).
+  Future<Map<int, String>> songPaths() async {
+    final query = selectOnly(songs)..addColumns([songs.id, songs.path]);
+    return {
+      for (final row in await query.get())
+        row.read(songs.id)!: row.read(songs.path)!,
+    };
+  }
+
   /// IDs of the playlists that contain [songId] (add-to-playlist sheet).
   Stream<Set<int>> watchPlaylistsContaining(int songId) {
     final query = selectOnly(playlistEntries, distinct: true)

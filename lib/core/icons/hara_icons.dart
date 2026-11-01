@@ -24,6 +24,8 @@ abstract final class HaraIcons {
     0xe0b7,
     fontFamily: _family,
   );
+  static const IconData fileInput = IconData(0xe0c5, fontFamily: _family);
+  static const IconData fileOutput = IconData(0xe0c8, fontFamily: _family);
   static const IconData folder = IconData(0xe0d7, fontFamily: _family);
   static const IconData folderOpen = IconData(0xe247, fontFamily: _family);
   static const IconData gripVertical = IconData(0xe0eb, fontFamily: _family);
@@ -80,6 +82,8 @@ abstract final class HaraIcons {
     'disc-3': disc3,
     'ellipsis': ellipsis,
     'ellipsis-vertical': ellipsisVertical,
+    'file-input': fileInput,
+    'file-output': fileOutput,
     'folder': folder,
     'folder-open': folderOpen,
     'grip-vertical': gripVertical,

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/app.dart';
 import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/app_database.dart';
+import 'package:haraplay/core/platform/document_files.dart';
 import 'package:haraplay/core/platform/media_store_channel.dart';
 import 'package:haraplay/core/storage/preferences.dart';
 import 'package:haraplay/core/theme/hara_theme.dart';
@@ -81,6 +82,7 @@ Future<void> pumpHaraApp(
   FakeAudioInfo? audioInfo,
   bool waveMotion = false,
   SystemTones? systemTones,
+  FakeDocumentFiles? documentFiles,
 }) async {
   final preferences = await createTestPreferences(prefs);
   final db = database ?? createTestDatabase();
@@ -109,6 +111,9 @@ Future<void> pumpHaraApp(
         // The wave's endless motion would keep pumpAndSettle from ending.
         seekWaveMotionProvider.overrideWithValue(waveMotion),
         initialSystemTonesProvider.overrideWithValue(systemTones),
+        documentFilesProvider.overrideWithValue(
+          documentFiles ?? FakeDocumentFiles(),
+        ),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

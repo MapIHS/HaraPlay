@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../../core/widgets/hara_icon_button.dart';
 import '../../../core/widgets/hara_sheet.dart';
 import '../../../core/widgets/heart_mark.dart';
 import '../../../core/widgets/section_header.dart';
+import '../data/m3u_service.dart';
 import '../domain/playlist_models.dart';
 import 'playlist_cover.dart';
 import 'playlist_dialogs.dart';
@@ -32,6 +35,11 @@ class PlaylistsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Playlists'),
         actions: [
+          HaraIconButton(
+            icon: HaraIcons.fileInput,
+            tooltip: 'Import playlist (.m3u)',
+            onPressed: () => importPlaylist(context, ref),
+          ),
           HaraIconButton(
             icon: HaraIcons.plus,
             tooltip: 'New playlist',
@@ -102,7 +110,52 @@ Future<void> createPlaylist(BuildContext context, WidgetRef ref) async {
   await router.push(AppRoutes.playlist(id));
 }
 
-/// Rename / delete for one playlist. [onDeleted] runs after a delete (the
+Future<void> _export(
+  BuildContext context,
+  WidgetRef ref,
+  PlaylistSummary playlist,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  String? message;
+  try {
+    final saved = await ref.read(m3uServiceProvider).export(playlist);
+    if (saved != null) message = 'Saved "$saved".';
+  } on Object {
+    message = "Couldn't save the playlist. Please try again.";
+  }
+  if (message == null) return; // Cancelled.
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// Picks an `.m3u` file, makes a playlist of the songs found and opens it.
+Future<void> importPlaylist(BuildContext context, WidgetRef ref) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final router = GoRouter.of(context);
+  M3uImport? result;
+  try {
+    result = await ref.read(m3uServiceProvider).import();
+  } on Object {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text("Couldn't read that file. Is it an .m3u playlist?"),
+        ),
+      );
+    return;
+  }
+  if (result == null) return; // Cancelled.
+  final id = result.playlistId;
+  // Not awaited: push completes only when the page is closed.
+  if (id != null) unawaited(router.push(AppRoutes.playlist(id)));
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(describeImport(result))));
+}
+
+/// Rename / export / delete for one playlist. [onDeleted] runs after a delete (the
 /// detail screen closes itself).
 Future<void> showPlaylistActions(
   BuildContext context,
@@ -131,6 +184,11 @@ Future<void> showPlaylistActions(
           value: _PlaylistAction.rename,
         ),
         const _SheetAction(
+          icon: HaraIcons.fileOutput,
+          label: 'Export as .m3u',
+          value: _PlaylistAction.export,
+        ),
+        const _SheetAction(
           icon: HaraIcons.trash2,
           label: 'Delete playlist',
           value: _PlaylistAction.delete,
@@ -152,6 +210,8 @@ Future<void> showPlaylistActions(
       if (name != null && name != playlist.name) {
         await dao.rename(playlist.id, name, at: DateTime.now());
       }
+    case _PlaylistAction.export:
+      await _export(context, ref, playlist);
     case _PlaylistAction.delete:
       if (!await confirmDeletePlaylist(context, playlist.name)) return;
       onDeleted?.call();
@@ -159,7 +219,7 @@ Future<void> showPlaylistActions(
   }
 }
 
-enum _PlaylistAction { addSongs, rename, delete }
+enum _PlaylistAction { addSongs, rename, export, delete }
 
 class _SheetAction extends StatelessWidget {
   const _SheetAction({

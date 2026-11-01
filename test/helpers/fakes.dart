@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -6,6 +7,7 @@ import 'package:clock/clock.dart';
 import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
+import 'package:haraplay/core/platform/document_files.dart';
 import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
 import 'package:haraplay/features/audio_info/data/audio_info_repository.dart';
@@ -356,4 +358,30 @@ class FakeAudioInfo implements AudioInfoSource {
     requested.add(song);
     return byPath[song.path] ?? AudioFileInfo.unreadable;
   }
+}
+
+/// The document picker: [toOpen] is what the user picks.
+class FakeDocumentFiles implements DocumentFiles {
+  /// What the user "picks" when opening; null cancels.
+  OpenedFile? toOpen;
+
+  /// The last saved file; set [cancelSave] to cancel instead.
+  String? savedName;
+  String? savedText;
+  bool cancelSave = false;
+
+  @override
+  Future<String?> save({
+    required String fileName,
+    required String mimeType,
+    required Uint8List bytes,
+  }) async {
+    if (cancelSave) return null;
+    savedName = fileName;
+    savedText = utf8.decode(bytes);
+    return fileName;
+  }
+
+  @override
+  Future<OpenedFile?> open({required List<String> mimeTypes}) async => toOpen;
 }

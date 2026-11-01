@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:haraplay/core/utils/text_decode.dart';
 import 'package:haraplay/features/lyrics/data/lyrics_loader.dart';
 import 'package:haraplay/features/lyrics/domain/lyrics.dart';
 
@@ -54,13 +55,13 @@ void main() {
     ]);
   });
 
-  group('decodeLyricsText', () {
+  group('decodeTextFile', () {
     const text = 'Señorita · ♪';
     test('UTF-8 with and without BOM', () {
       final bytes = utf8.encode(text);
-      expect(decodeLyricsText(Uint8List.fromList(bytes)), text);
+      expect(decodeTextFile(Uint8List.fromList(bytes)), text);
       expect(
-        decodeLyricsText(Uint8List.fromList([0xEF, 0xBB, 0xBF, ...bytes])),
+        decodeTextFile(Uint8List.fromList([0xEF, 0xBB, 0xBF, ...bytes])),
         text,
       );
     });
@@ -72,13 +73,13 @@ void main() {
         le.addAll([unit & 0xFF, unit >> 8]);
         be.addAll([unit >> 8, unit & 0xFF]);
       }
-      expect(decodeLyricsText(Uint8List.fromList(le)), text);
-      expect(decodeLyricsText(Uint8List.fromList(be)), text);
+      expect(decodeTextFile(Uint8List.fromList(le)), text);
+      expect(decodeTextFile(Uint8List.fromList(be)), text);
     });
 
     test('Latin-1 when the bytes are not valid UTF-8', () {
       final bytes = latin1.encode('Señorita café');
-      expect(decodeLyricsText(Uint8List.fromList(bytes)), 'Señorita café');
+      expect(decodeTextFile(Uint8List.fromList(bytes)), 'Señorita café');
     });
   });
 }
