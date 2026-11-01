@@ -50,6 +50,10 @@ class HaraAudioHandler extends BaseAudioHandler
       _player.currentIndexStream.listen(_onIndex),
       _player.positionStream.listen(_onPosition),
       _player.positionDiscontinuityStream.listen(_onDiscontinuity),
+      _player.speedStream.listen((_) {
+        _publishStatus();
+        _broadcastState();
+      }),
     ]);
   }
 
@@ -219,6 +223,73 @@ class HaraAudioHandler extends BaseAudioHandler
     });
   }
 
+  /// The song an opened file interrupted, where to pick it up again, and
+  /// the opened song (which may be a library song too).
+  ({int songId, Duration position, int openedId})? _resume;
+
+  /// The opened song has started; from now on, leaving it ends the detour.
+  /// (Index events from the insert itself arrive late and must not count.)
+  bool _openedStarted = false;
+
+  @override
+  Future<void> playOpened(QueueSong song) async {
+    // At a cold start the saved queue is still loading; it must not
+    // replace the file afterwards.
+    await _restoring;
+    if (_songs.isEmpty) {
+      await playSongs([song], source: PlaySource.external, shuffle: false);
+      return;
+    }
+    final at = _current;
+    final interrupted = _songs[at];
+    // The song that is already playing: just start it again.
+    if (interrupted.id == song.id) {
+      await _player.seek(Duration.zero);
+      await _player.play();
+      return;
+    }
+    final previous = _resume;
+    // Opening a second file while the first plays: still come back to the
+    // song the first one interrupted.
+    _resume = interrupted.id == previous?.openedId
+        ? (
+            songId: previous!.songId,
+            position: previous.position,
+            openedId: song.id,
+          )
+        : (
+            songId: interrupted.id,
+            position: _player.position,
+            openedId: song.id,
+          );
+    _openedStarted = false;
+    await _edit(() async {
+      _queue.insert(at, [song]);
+      await _player.insertAudioSources(at, _sourcesFor([song]));
+    });
+    await _player.seek(Duration.zero, index: at);
+    await _player.play();
+  }
+
+  /// Back at the interrupted song after an opened file: continue from
+  /// where it stopped.
+  void _resumeInterrupted(QueueSong? song) {
+    final resume = _resume;
+    if (resume == null || song == null) return;
+    if (song.id == resume.openedId) {
+      _openedStarted = true;
+      return;
+    }
+    if (!_openedStarted) return;
+    _resume = null;
+    if (song.id == resume.songId && resume.position > Duration.zero) {
+      unawaited(_player.seek(resume.position));
+    }
+  }
+
+  @override
+  Future<void> setSpeed(double speed) => _player.setSpeed(speed.clamp(0.5, 2));
+
   @override
   Future<void> removeFromQueue(int index) async {
     if (index < 0 || index >= _songs.length || index == _current) return;
@@ -341,7 +412,7 @@ class HaraAudioHandler extends BaseAudioHandler
     final existing = await store.songsByIds([for (final s in _songs) s.id]);
     final missing = [
       for (var i = 0; i < _songs.length; i++)
-        if (!existing.containsKey(_songs[i].id)) i,
+        if (!_songs[i].isExternal && !existing.containsKey(_songs[i].id)) i,
     ];
     if (missing.isEmpty) return;
 
@@ -510,7 +581,12 @@ class HaraAudioHandler extends BaseAudioHandler
   void _onIndex(int? index) {
     if (_rebuilding) return;
     final song = _currentSong;
-    _recorder.trackChanged(song, source: _source);
+    // Files opened from another app are not in the library: not recorded.
+    _recorder.trackChanged(
+      song == null || song.isExternal ? null : song,
+      source: _source,
+    );
+    _resumeInterrupted(song);
     _publishStatus();
     unawaited(_savePosition());
     unawaited(_volume.songChanged(_keyOf(song), next: _keyOf(_upcomingSong)));
@@ -549,6 +625,7 @@ class HaraAudioHandler extends BaseAudioHandler
   }
 
   Future<void> _attachArtwork(QueueSong song, MediaItem item) async {
+    if (song.isExternal) return;
     final file = await _artwork.fileFor(
       ArtworkRequest(
         songId: song.id,
@@ -605,7 +682,8 @@ class HaraAudioHandler extends BaseAudioHandler
     return index == null ? null : _songs[index];
   }
 
-  static AudioInfoKey? _keyOf(QueueSong? song) => song == null
+  static AudioInfoKey? _keyOf(QueueSong? song) =>
+      song == null || song.isExternal
       ? null
       : (id: song.id, path: song.path, version: song.version);
 
@@ -624,6 +702,7 @@ class HaraAudioHandler extends BaseAudioHandler
       sourceLabel: _sourceLabel,
       queue: _songs,
       queueIndex: _player.currentIndex ?? 0,
+      speed: _player.speed,
     );
     if (!_status.isClosed) _status.add(_lastStatus);
   }
@@ -675,14 +754,26 @@ class HaraAudioHandler extends BaseAudioHandler
     final store = _queueStore;
     if (store == null || _songs.isEmpty) return;
     _lastSavedPosition = _player.position;
+    final (index, position) = _savedPlace(
+      _player.currentIndex ?? 0,
+      _player.position,
+    );
+    final songIds = [
+      for (final s in _songs)
+        if (!s.isExternal) s.id,
+    ];
+    if (songIds.isEmpty) return;
     await store.save(
       SavedQueue(
-        songIds: [for (final s in _songs) s.id],
+        songIds: songIds,
         originalSongIds: _shuffled
-            ? [for (final s in _queue.original) s.id]
+            ? [
+                for (final s in _queue.original)
+                  if (!s.isExternal) s.id,
+              ]
             : null,
-        currentIndex: _player.currentIndex ?? 0,
-        position: _player.position,
+        currentIndex: index,
+        position: position,
         shuffle: _shuffled,
         repeat: _repeat,
         source: _source,
@@ -697,7 +788,22 @@ class HaraAudioHandler extends BaseAudioHandler
     final index = _player.currentIndex;
     if (store == null || index == null || _songs.isEmpty) return;
     _lastSavedPosition = _player.position;
-    await store.savePosition(index, _player.position, at: DateTime.now());
+    final (saved, position) = _savedPlace(index, _player.position);
+    await store.savePosition(saved, position, at: DateTime.now());
+  }
+
+  /// [index] and [position] as the saved queue sees them: without the
+  /// opened files. While one plays, the interrupted song is the place to
+  /// come back to.
+  (int, Duration) _savedPlace(int index, Duration position) {
+    final before = [
+      for (var i = 0; i < index && i < _songs.length; i++)
+        if (!_songs[i].isExternal) i,
+    ].length;
+    final current = index < _songs.length ? _songs[index] : null;
+    if (current == null || !current.isExternal) return (before, position);
+    final resume = _resume;
+    return (before, resume?.position ?? Duration.zero);
   }
 
   static LoopMode _loopModeFor(RepeatSetting mode) => switch (mode) {

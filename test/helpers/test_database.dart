@@ -29,6 +29,7 @@ MediaStoreSong mediaSong(
   int track = 0,
   int durationMs = 180000,
   int modifiedSec = 1700000000,
+  int sizeBytes = 4000000,
 }) => MediaStoreSong.tryParse({
   'id': id,
   'path': path ?? '/storage/emulated/0/Music/song$id.mp3',
@@ -43,4 +44,5 @@ MediaStoreSong mediaSong(
   'albumId': albumId,
   'dateAddedSec': 1700000000,
   'dateModifiedSec': modifiedSec,
+  'sizeBytes': sizeBytes,
 })!;

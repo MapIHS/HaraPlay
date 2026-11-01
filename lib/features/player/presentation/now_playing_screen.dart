@@ -16,6 +16,7 @@ import '../../lyrics/presentation/lyrics_view.dart';
 import '../../playlists/presentation/playlist_providers.dart';
 import '../domain/queue_song.dart';
 import 'peek_artwork.dart';
+import 'playback_speed.dart';
 import 'player_providers.dart';
 import 'queue_sheet.dart';
 import 'seek_bar.dart';
@@ -24,6 +25,8 @@ import 'song_actions_sheet.dart';
 
 /// "Playing from …" text for the top bar.
 String playingFrom(PlaybackStatus status) {
+  // An opened file plays in the middle of some other queue.
+  if (status.song?.isExternal ?? false) return 'A shared file';
   final kind = switch (status.source) {
     PlaySource.songs => 'All songs',
     PlaySource.album => 'Album',
@@ -118,6 +121,7 @@ class NowPlayingScreen extends ConsumerWidget {
                     beforeNavigate: onCollapse,
                     // A snackbar would sit behind the player.
                     showFeedback: false,
+                    showPlaybackSpeed: true,
                   ),
                 ),
               ],
@@ -147,15 +151,18 @@ class NowPlayingScreen extends ConsumerWidget {
                 Expanded(
                   child: _TitleBlock(song: song, onCollapse: onCollapse),
                 ),
-                const SizedBox(width: HaraSpacing.sm),
-                LikeButton(
-                  liked: ref.watch(isLikedProvider(song.id)),
-                  onPressed: () => setLiked(
-                    ref,
-                    song.id,
-                    liked: !ref.read(isLikedProvider(song.id)),
+                // Files opened from other apps can't be liked.
+                if (!song.isExternal) ...[
+                  const SizedBox(width: HaraSpacing.sm),
+                  LikeButton(
+                    liked: ref.watch(isLikedProvider(song.id)),
+                    onPressed: () => setLiked(
+                      ref,
+                      song.id,
+                      liked: !ref.read(isLikedProvider(song.id)),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -175,6 +182,16 @@ class NowPlayingScreen extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Flexible(child: SleepTimerButton()),
+                if (status.speed != 1)
+                  Semantics(
+                    label: 'Playback speed',
+                    child: HaraButton(
+                      label: formatSpeed(status.speed),
+                      variant: HaraButtonVariant.ghost,
+                      size: HaraButtonSize.small,
+                      onPressed: () => showPlaybackSpeedSheet(context),
+                    ),
+                  ),
                 const SizedBox(width: HaraSpacing.xs),
                 Flexible(
                   flex: 2,
@@ -233,13 +250,15 @@ class _TitleBlock extends StatelessWidget {
           link: true,
           child: InkWell(
             borderRadius: BorderRadius.circular(HaraRadius.sm),
-            onTap: () {
-              onCollapse();
-              final router = GoRouter.of(context);
-              router.push(
-                AppRoutes.artist(song.artist, tab: currentTab(router)),
-              );
-            },
+            onTap: song.isExternal
+                ? null
+                : () {
+                    onCollapse();
+                    final router = GoRouter.of(context);
+                    router.push(
+                      AppRoutes.artist(song.artist, tab: currentTab(router)),
+                    );
+                  },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: HaraSpacing.xs),
               child: Text(

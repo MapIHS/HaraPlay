@@ -17,6 +17,7 @@ import '../../library/presentation/library_providers.dart';
 import '../../playlists/presentation/add_to_playlist_sheet.dart';
 import '../../playlists/presentation/playlist_providers.dart';
 import '../domain/queue_song.dart';
+import 'playback_speed.dart';
 import 'player_providers.dart';
 
 /// Shows the actions for [song] (long-press or ⋯ on a song, ⋯ in Now
@@ -31,7 +32,10 @@ Future<void> showSongActions(
   VoidCallback? beforeNavigate,
   bool showFeedback = true,
   VoidCallback? onRemoveFromPlaylist,
+  bool showPlaybackSpeed = false,
 }) async {
+  // A file opened from another app has no library actions.
+  if (song.isExternal && !showPlaybackSpeed) return;
   final router = GoRouter.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final player = ref.read(playerProvider);
@@ -45,8 +49,11 @@ Future<void> showSongActions(
 
   final action = await showHaraSheet<_SongAction>(
     context: context,
-    builder: (_) =>
-        _SongActions(song: song, removable: onRemoveFromPlaylist != null),
+    builder: (_) => _SongActions(
+      song: song,
+      removable: onRemoveFromPlaylist != null,
+      showPlaybackSpeed: showPlaybackSpeed,
+    ),
   );
   if (action == null || !context.mounted) return;
 
@@ -78,6 +85,9 @@ Future<void> showSongActions(
     case _SongAction.goToArtist:
       beforeNavigate?.call();
       await router.push(AppRoutes.artist(song.artist, tab: currentTab(router)));
+    case _SongAction.speed:
+      if (!context.mounted) return;
+      await showPlaybackSpeedSheet(context);
     case _SongAction.info:
       if (!context.mounted) return;
       await showHaraSheet<void>(
@@ -97,14 +107,20 @@ enum _SongAction {
   removeFromPlaylist,
   goToAlbum,
   goToArtist,
+  speed,
   info,
 }
 
 class _SongActions extends ConsumerWidget {
-  const _SongActions({required this.song, required this.removable});
+  const _SongActions({
+    required this.song,
+    required this.removable,
+    required this.showPlaybackSpeed,
+  });
 
   final QueueSong song;
   final bool removable;
+  final bool showPlaybackSpeed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,48 +172,57 @@ class _SongActions extends ConsumerWidget {
           ),
         ),
         const Divider(),
-        _ActionRow(
-          icon: HaraIcons.listStart,
-          label: 'Play next',
-          onTap: () => choose(_SongAction.playNext),
-        ),
-        _ActionRow(
-          icon: HaraIcons.listEnd,
-          label: 'Add to queue',
-          onTap: () => choose(_SongAction.addToQueue),
-        ),
-        _ActionRow(
-          icon: HaraIcons.listPlus,
-          label: 'Add to playlist',
-          onTap: () => choose(_SongAction.addToPlaylist),
-        ),
-        _ActionRow(
-          icon: HaraIcons.heart,
-          label: liked ? 'Remove from Liked songs' : 'Add to Liked songs',
-          onTap: () => choose(liked ? _SongAction.unlike : _SongAction.like),
-        ),
-        if (removable)
+        if (showPlaybackSpeed)
           _ActionRow(
-            icon: HaraIcons.trash2,
-            label: 'Remove from this playlist',
-            onTap: () => choose(_SongAction.removeFromPlaylist),
+            icon: HaraIcons.gauge,
+            label:
+                'Playback speed · ${formatSpeed(ref.watch(playbackSpeedProvider))}',
+            onTap: () => choose(_SongAction.speed),
           ),
-        if (song.albumId != null)
+        if (!song.isExternal) ...[
           _ActionRow(
-            icon: HaraIcons.disc3,
-            label: 'Go to album',
-            onTap: () => choose(_SongAction.goToAlbum),
+            icon: HaraIcons.listStart,
+            label: 'Play next',
+            onTap: () => choose(_SongAction.playNext),
           ),
-        _ActionRow(
-          icon: HaraIcons.user,
-          label: 'Go to artist',
-          onTap: () => choose(_SongAction.goToArtist),
-        ),
-        _ActionRow(
-          icon: HaraIcons.info,
-          label: 'Song info',
-          onTap: () => choose(_SongAction.info),
-        ),
+          _ActionRow(
+            icon: HaraIcons.listEnd,
+            label: 'Add to queue',
+            onTap: () => choose(_SongAction.addToQueue),
+          ),
+          _ActionRow(
+            icon: HaraIcons.listPlus,
+            label: 'Add to playlist',
+            onTap: () => choose(_SongAction.addToPlaylist),
+          ),
+          _ActionRow(
+            icon: HaraIcons.heart,
+            label: liked ? 'Remove from Liked songs' : 'Add to Liked songs',
+            onTap: () => choose(liked ? _SongAction.unlike : _SongAction.like),
+          ),
+          if (removable)
+            _ActionRow(
+              icon: HaraIcons.trash2,
+              label: 'Remove from this playlist',
+              onTap: () => choose(_SongAction.removeFromPlaylist),
+            ),
+          if (song.albumId != null)
+            _ActionRow(
+              icon: HaraIcons.disc3,
+              label: 'Go to album',
+              onTap: () => choose(_SongAction.goToAlbum),
+            ),
+          _ActionRow(
+            icon: HaraIcons.user,
+            label: 'Go to artist',
+            onTap: () => choose(_SongAction.goToArtist),
+          ),
+          _ActionRow(
+            icon: HaraIcons.info,
+            label: 'Song info',
+            onTap: () => choose(_SongAction.info),
+          ),
+        ],
       ],
     );
   }

@@ -12,6 +12,7 @@ class MainActivity : AudioServiceActivity() {
     private var playback: PlaybackForeground? = null
     private var systemColors: SystemColorsPlugin? = null
     private var documents: DocumentFilesPlugin? = null
+    private var openWith: OpenWithPlugin? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -23,6 +24,15 @@ class MainActivity : AudioServiceActivity() {
         systemColors = SystemColorsPlugin(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
         documents?.dispose()
         documents = DocumentFilesPlugin(this, flutterEngine.dartExecutor.binaryMessenger)
+        openWith?.dispose()
+        openWith = OpenWithPlugin(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
+        openWith?.handle(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openWith?.handle(intent)
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -34,6 +44,8 @@ class MainActivity : AudioServiceActivity() {
         systemColors = null
         documents?.dispose()
         documents = null
+        openWith?.dispose()
+        openWith = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

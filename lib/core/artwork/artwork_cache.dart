@@ -65,6 +65,8 @@ class ArtworkCache {
 
   /// JPEG bytes, or null when the song has no artwork.
   Future<Uint8List?> load(ArtworkRequest request) {
+    // Files opened from other apps (negative IDs) are not in MediaStore.
+    if (request.songId < 0) return Future.value();
     final key = request.cacheKey;
     if (_missing.contains(key)) return Future.value();
     // A block body: an arrow would return the removed future itself, and

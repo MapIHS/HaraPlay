@@ -75,4 +75,13 @@ abstract interface class Player {
 
   /// Evens out loudness with the songs' ReplayGain tags (A5).
   void setReplayGainMode(ReplayGainMode mode);
+
+  /// Playback speed, 0.5–2 (pitch is kept). See [PlaybackStatus.speed].
+  Future<void> setSpeed(double speed);
+
+  /// Plays [song] (opened from another app) right away, keeping the queue:
+  /// it goes in before the current song, and the interrupted song carries
+  /// on from where it was once [song] ends. With an empty queue it becomes
+  /// the queue; if [song] is the current song, it starts again.
+  Future<void> playOpened(QueueSong song);
 }

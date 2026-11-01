@@ -12,7 +12,10 @@ final lyricsLoaderProvider = Provider<LyricsLoader>(
 /// file is read again.
 final lyricsProvider = FutureProvider.autoDispose
     .family<Lyrics?, ({int id, String path, int version})>(
-      (ref, song) => ref.watch(lyricsLoaderProvider).load(song.path),
+      // Files opened from other apps have no path (and no lyrics).
+      (ref, song) async => song.path.isEmpty
+          ? null
+          : ref.watch(lyricsLoaderProvider).load(song.path),
     );
 
 /// The lyrics key for [song].

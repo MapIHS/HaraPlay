@@ -12,7 +12,32 @@ class QueueSong {
     this.artist,
     this.album,
     this.albumId,
+    this.contentUri,
   });
+
+  /// A file opened from another app ("Open with") that is not in the
+  /// library. It gets a negative [id], plays from [uri], and is never
+  /// recorded, saved with the queue, liked or added to playlists.
+  factory QueueSong.external({
+    required int id,
+    required Uri uri,
+    required String title,
+    String? artist,
+    String? album,
+    Duration duration = Duration.zero,
+  }) {
+    assert(id < 0, 'external songs use negative IDs');
+    return QueueSong(
+      id: id,
+      title: title,
+      artist: artist,
+      album: album,
+      path: '',
+      duration: duration,
+      version: 0,
+      contentUri: uri,
+    );
+  }
 
   factory QueueSong.fromRow(SongRow row) => QueueSong(
     id: row.id,
@@ -36,8 +61,16 @@ class QueueSong {
   /// date_modified, for artwork caching.
   final int version;
 
-  /// MediaStore content URI; playback never needs file-path access.
-  Uri get uri => Uri.parse('content://media/external/audio/media/$id');
+  /// Set for [QueueSong.external] songs only.
+  final Uri? contentUri;
+
+  /// Opened from another app and not in the library.
+  bool get isExternal => id < 0;
+
+  /// MediaStore content URI (playback never needs file-path access), or
+  /// the URI another app handed over.
+  Uri get uri =>
+      contentUri ?? Uri.parse('content://media/external/audio/media/$id');
 
   String get displayArtist => artist ?? unknownArtist;
   String get displayAlbum => album ?? unknownAlbum;
@@ -62,6 +95,7 @@ class PlaybackStatus {
     this.sourceLabel,
     this.queue = const [],
     this.queueIndex = 0,
+    this.speed = 1,
   });
 
   static const idle = PlaybackStatus(
@@ -86,6 +120,9 @@ class PlaybackStatus {
   final List<QueueSong> queue;
   final int queueIndex;
 
+  /// Playback speed; 1 is normal (A7d).
+  final double speed;
+
   int get queueLength => queue.length;
 
   /// Songs after the current one.
@@ -95,6 +132,7 @@ class PlaybackStatus {
     bool? playing,
     bool? shuffle,
     RepeatSetting? repeat,
+    double? speed,
   }) => PlaybackStatus(
     song: song,
     playing: playing ?? this.playing,
@@ -106,6 +144,7 @@ class PlaybackStatus {
     sourceLabel: sourceLabel,
     queue: queue,
     queueIndex: queueIndex,
+    speed: speed ?? this.speed,
   );
 }
 

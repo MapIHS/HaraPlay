@@ -28,6 +28,7 @@ abstract final class HaraIcons {
   static const IconData fileOutput = IconData(0xe0c8, fontFamily: _family);
   static const IconData folder = IconData(0xe0d7, fontFamily: _family);
   static const IconData folderOpen = IconData(0xe247, fontFamily: _family);
+  static const IconData gauge = IconData(0xe1bf, fontFamily: _family);
   static const IconData gripVertical = IconData(0xe0eb, fontFamily: _family);
   static const IconData heart = IconData(0xe0f2, fontFamily: _family);
   static const IconData history = IconData(0xe1f5, fontFamily: _family);
@@ -86,6 +87,7 @@ abstract final class HaraIcons {
     'file-output': fileOutput,
     'folder': folder,
     'folder-open': folderOpen,
+    'gauge': gauge,
     'grip-vertical': gripVertical,
     'heart': heart,
     'history': history,

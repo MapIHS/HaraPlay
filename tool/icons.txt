@@ -17,6 +17,7 @@ file-input
 file-output
 folder
 folder-open
+gauge
 grip-vertical
 heart
 history

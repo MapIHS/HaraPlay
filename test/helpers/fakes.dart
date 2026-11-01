@@ -209,6 +209,7 @@ class FakePlayer implements Player {
         sourceLabel: _current.sourceLabel,
         queue: songs,
         queueIndex: _index,
+        speed: _current.speed,
       ),
     );
   }
@@ -327,6 +328,25 @@ class FakePlayer implements Player {
   Future<void> skipTo(int index) async {
     _index = index;
     _emitQueue();
+  }
+
+  @override
+  Future<void> setSpeed(double speed) async =>
+      emit(_current.copyWith(speed: speed));
+
+  final opened = <QueueSong>[];
+
+  @override
+  Future<void> playOpened(QueueSong song) async {
+    opened.add(song);
+    final songs = [..._queue.songs];
+    if (songs.isEmpty) {
+      await playSongs([song], source: PlaySource.external);
+      return;
+    }
+    songs.insert(_index, song);
+    _queue = QueueModel(songs);
+    _emitQueue(playing: true);
   }
 }
 

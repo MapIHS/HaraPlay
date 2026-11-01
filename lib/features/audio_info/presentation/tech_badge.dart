@@ -22,7 +22,10 @@ class TechBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final info = ref.watch(audioInfoProvider(audioInfoKey(song))).value;
+    // Files opened from other apps have no path to read.
+    final info = song.isExternal
+        ? null
+        : ref.watch(audioInfoProvider(audioInfoKey(song))).value;
     final text = info == null ? null : techBadge(info);
     final lossless = info?.lossless ?? false;
     final colors = HaraColors.of(context);

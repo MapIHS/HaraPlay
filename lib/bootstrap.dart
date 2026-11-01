@@ -22,8 +22,10 @@ import 'features/library/presentation/library_providers.dart';
 import 'features/onboarding/data/media_permission_service.dart';
 import 'features/onboarding/data/onboarding_repository.dart';
 import 'features/onboarding/presentation/onboarding_controllers.dart';
+import 'features/open_with/data/open_with.dart';
 import 'features/player/data/hara_audio_handler.dart';
 import 'features/player/data/play_event_recorder.dart';
+import 'features/player/presentation/playback_speed.dart';
 import 'features/player/presentation/player_providers.dart';
 import 'features/settings/presentation/color_choice_controller.dart';
 
@@ -102,6 +104,7 @@ Future<void> bootstrap() async {
   );
   await handler.configureSession();
   handler.setReplayGainMode(loadReplayGainMode(preferences));
+  await handler.setSpeed(loadPlaybackSpeed(preferences));
 
   final container = ProviderContainer(
     overrides: [
@@ -146,4 +149,9 @@ Future<void> bootstrap() async {
       if (next == MediaAccess.granted) startLibrary();
     });
   }
+
+  // Audio files opened with HaraPlay from other apps. Started last, so a
+  // file opened at a cold start comes after the restored queue.
+  final opener = OpenWith(handler, DatabaseOpenWithLibrary(database));
+  OpenWithChannel().files().listen((file) => opener.open(file).ignore());
 }
