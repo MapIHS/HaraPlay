@@ -7,6 +7,7 @@ import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/media_store_channel.dart';
 import 'package:haraplay/core/storage/preferences.dart';
 import 'package:haraplay/core/theme/hara_theme.dart';
+import 'package:haraplay/core/theme/system_tones.dart';
 import 'package:haraplay/features/audio_info/data/audio_info_repository.dart';
 import 'package:haraplay/features/equalizer/data/audio_effects.dart';
 import 'package:haraplay/features/equalizer/domain/equalizer.dart';
@@ -18,6 +19,7 @@ import 'package:haraplay/features/onboarding/data/media_permission_service.dart'
 import 'package:haraplay/features/onboarding/presentation/onboarding_controllers.dart';
 import 'package:haraplay/features/player/presentation/player_providers.dart';
 import 'package:haraplay/features/player/presentation/seek_bar.dart';
+import 'package:haraplay/features/settings/presentation/color_choice_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -78,6 +80,7 @@ Future<void> pumpHaraApp(
   AudioEffectsSink effectsSink = const NoAudioEffects(),
   FakeAudioInfo? audioInfo,
   bool waveMotion = false,
+  SystemTones? systemTones,
 }) async {
   final preferences = await createTestPreferences(prefs);
   final db = database ?? createTestDatabase();
@@ -105,6 +108,7 @@ Future<void> pumpHaraApp(
         audioInfoSourceProvider.overrideWithValue(audioInfo ?? FakeAudioInfo()),
         // The wave's endless motion would keep pumpAndSettle from ending.
         seekWaveMotionProvider.overrideWithValue(waveMotion),
+        initialSystemTonesProvider.overrideWithValue(systemTones),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

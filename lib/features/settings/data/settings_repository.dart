@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/storage/preferences.dart';
+import '../../../core/theme/palettes.dart';
 
 /// Persists user settings in shared preferences.
 class SettingsRepository {
@@ -11,6 +12,7 @@ class SettingsRepository {
   final SharedPreferencesWithCache _prefs;
 
   static const _themeModeKey = 'settings.themeMode';
+  static const _colorChoiceKey = 'settings.colorChoice';
   static const _minSongLengthKey = 'settings.minSongLengthSeconds';
 
   /// Choices for the minimum song length; [Duration.zero] means "off".
@@ -32,6 +34,17 @@ class SettingsRepository {
 
   Future<void> writeThemeMode(ThemeMode mode) =>
       _prefs.setString(_themeModeKey, mode.name);
+
+  ColorChoice readColorChoice() {
+    final stored = _prefs.getString(_colorChoiceKey);
+    return ColorChoice.values.firstWhere(
+      (choice) => choice.name == stored,
+      orElse: () => ColorChoice.saffron,
+    );
+  }
+
+  Future<void> writeColorChoice(ColorChoice choice) =>
+      _prefs.setString(_colorChoiceKey, choice.name);
 
   /// Songs shorter than this are hidden from the library (not deleted).
   Duration readMinSongLength() {

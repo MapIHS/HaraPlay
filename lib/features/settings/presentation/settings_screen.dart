@@ -13,6 +13,7 @@ import '../../audio_info/presentation/replay_gain_controller.dart';
 import '../../equalizer/presentation/equalizer_controller.dart';
 import '../../equalizer/presentation/equalizer_screen.dart';
 import 'choice_sheet.dart';
+import 'color_choice_picker.dart';
 import 'library_settings.dart';
 import 'settings_tile.dart';
 import 'theme_mode_picker.dart';
@@ -37,6 +38,15 @@ class SettingsScreen extends StatelessWidget {
               HaraSpacing.lg,
             ),
             child: ThemeModePicker(),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              HaraSpacing.gutter,
+              0,
+              HaraSpacing.gutter,
+              HaraSpacing.lg,
+            ),
+            child: ColorChoicePicker(),
           ),
           const SectionHeader(title: 'Playback'),
           const _EqualizerTile(),

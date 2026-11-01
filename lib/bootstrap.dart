@@ -12,6 +12,7 @@ import 'core/database/app_database.dart';
 import 'core/debug/frame_stats.dart';
 import 'core/platform/media_store_channel.dart';
 import 'core/storage/preferences.dart';
+import 'core/theme/system_tones.dart';
 import 'features/audio_info/data/audio_info_repository.dart';
 import 'features/audio_info/presentation/replay_gain_controller.dart';
 import 'features/equalizer/data/audio_effects.dart';
@@ -23,6 +24,7 @@ import 'features/onboarding/presentation/onboarding_controllers.dart';
 import 'features/player/data/hara_audio_handler.dart';
 import 'features/player/data/play_event_recorder.dart';
 import 'features/player/presentation/player_providers.dart';
+import 'features/settings/presentation/color_choice_controller.dart';
 
 /// Initialises app-wide services before the first frame: preferences, the
 /// database, and the audio service that owns playback.
@@ -35,6 +37,9 @@ Future<void> bootstrap() async {
   final sdkInt = await channel.sdkIntWhenReady();
   // Checked before the first frame so the router starts on the right screen.
   final access = await MediaPermissionService(sdkInt: sdkInt).check();
+
+  // Wallpaper colours (Android 12+), for the first frame.
+  final systemTones = await const SystemTonesChannel().read();
 
   // Shared with the audio handler, which lives outside the widget tree.
   final database = AppDatabase.open();
@@ -109,6 +114,7 @@ Future<void> bootstrap() async {
       audioEffectsInfoProvider.overrideWithValue(effectsInfo),
       audioEffectsSinkProvider.overrideWithValue(effects),
       audioInfoSourceProvider.overrideWithValue(audioInfo),
+      initialSystemTonesProvider.overrideWithValue(systemTones),
     ],
   );
   runApp(

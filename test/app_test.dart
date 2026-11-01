@@ -128,6 +128,7 @@ void main() {
   testWidgets('licenses page opens from Settings', (tester) async {
     await pumpHaraApp(tester);
     await tapAndSettle(tester, find.byTooltip('Settings'));
+    await tester.scrollUntilVisible(find.text('Open-source licenses'), 200);
     await tapAndSettle(tester, find.text('Open-source licenses'));
     expect(find.textContaining('The HaraPlay Authors'), findsOneWidget);
   });
