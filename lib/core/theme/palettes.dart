@@ -18,7 +18,7 @@ enum ColorChoice {
 }
 
 /// HaraPlay's brand palettes. Saffron is the default; Periwinkle and
-/// Apricot are the other two brand options from docs/PLAN.md §2. The
+/// Apricot are the alternative brand palettes. The
 /// pastel accents and danger colours are shared.
 abstract final class HaraPalettes {
   /// Light and dark palettes for [choice]. [tones] are the system's

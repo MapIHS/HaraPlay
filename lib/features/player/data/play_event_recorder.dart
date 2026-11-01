@@ -7,7 +7,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/play_events_dao.dart';
 import '../domain/queue_song.dart';
 
-/// Records listening history (docs/PLAN.md §3, "Play events").
+/// Records listening history as play events.
 ///
 /// Counts time actually spent playing, measured on a monotonic clock, so
 /// seeking never adds or removes listened time. A row is inserted once a

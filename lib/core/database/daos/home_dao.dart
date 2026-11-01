@@ -5,7 +5,7 @@ import '../app_database.dart';
 part 'home_dao.g.dart';
 
 /// SQL for "this listen counts as a play": at least 30 s, or half the song
-/// if that is shorter (docs/PLAN.md §5). Applied at query time, so the rule
+/// if that is shorter. Applied at query time, so the rule
 /// can change without losing history.
 const countsAsPlaySql =
     'e.listened_ms >= MIN(30000, e.duration_ms / 2) AND e.listened_ms > 0';

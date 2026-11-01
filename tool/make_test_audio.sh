@@ -79,7 +79,7 @@ done
 
 # 10. The same accented tags as #7, but as ID3v2.3 (Latin-1). Android's
 # charset guess decodes this set as Windows-1250 ("ñ" shows as "ń"); the
-# tag fallback (PLAN.md §6.1) repairs it.
+# tag fallback (reading the file's own tags) repairs it.
 "${ff[@]}" -f lavfi -i "$(tone 349 37 44100)" -c:a libmp3lame -b:a 96k -id3v2_version 3 \
   -metadata title="Señorita Café (Latin-1)" -metadata artist="Beyoncé Sinewave" \
   -metadata album="Ünïcode Dreams" -metadata genre="Pop" -metadata date=2022 \

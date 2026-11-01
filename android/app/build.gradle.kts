@@ -8,7 +8,7 @@ plugins {
 
 // Release signing comes from android/key.properties, which points at the
 // keystore outside the repository. Both are git-ignored and must never be
-// committed (see docs/PLAN.md, M11).
+// committed.
 val keyProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) file.inputStream().use { load(it) }

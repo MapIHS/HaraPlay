@@ -25,7 +25,7 @@ import 'sleep_timer.dart';
 /// notification, lock screen and media buttons through audio_service.
 /// The app talks to it through the [Player] interface.
 ///
-/// Shuffle is our own (docs/PLAN.md §3): the playlist is physically
+/// Shuffle is our own: the playlist is physically
 /// reordered around the current song, never through just_audio's shuffle
 /// mode, so the queue always shows the real play order.
 class HaraAudioHandler extends BaseAudioHandler

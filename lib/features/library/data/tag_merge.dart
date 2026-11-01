@@ -1,6 +1,6 @@
 import '../../../core/utils/text_normalize.dart';
 
-/// The tag fields that a file's own tags can correct (docs/PLAN.md §6.1).
+/// The tag fields that a file's own tags can correct.
 class SongTags {
   const SongTags({
     this.title,

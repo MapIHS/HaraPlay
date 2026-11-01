@@ -42,7 +42,7 @@ class TopEntry {
   final String? songPath;
 }
 
-/// Listening statistics, all derived from `play_events` (docs/PLAN.md §5).
+/// Listening statistics, all derived from `play_events`.
 ///
 /// Times are grouped in the phone's local time: [utcOffset] is added to the
 /// stored UTC timestamps, so the result doesn't depend on SQLite's own

@@ -20,7 +20,7 @@ class EnrichmentProgress {
 }
 
 /// Fills in tags MediaStore missed by reading the files themselves
-/// (docs/PLAN.md §6.1). Runs in the background after each sync; results
+/// ([SongTagFallbacks]). Runs in the background after each sync; results
 /// reach the UI through the database streams.
 class TagEnrichmentService {
   TagEnrichmentService(

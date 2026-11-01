@@ -71,8 +71,8 @@ class FileTagsResult {
 class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
   LibraryDao(super.attachedDatabase);
 
-  /// Mirrors [scanned] into the songs table in one transaction
-  /// (docs/PLAN.md §6, sync rules).
+  /// Mirrors [scanned] into the songs table in one transaction: adds new
+  /// songs, updates changed ones, re-keys moved IDs and removes the rest.
   Future<SyncResult> applyScan(List<MediaStoreSong> scanned) => transaction(
     () async {
       final incomingById = {for (final s in scanned) s.id: s};
@@ -170,7 +170,8 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> with _$LibraryDaoMixin {
     songs,
   )..where((s) => s.id.equals(from))).write(SongsCompanion(id: Value(to)));
 
-  /// Songs whose file tags should be read (§6.1): no valid fallback yet,
+  /// Songs whose file tags should be read (see [SongTagFallbacks]): no
+  /// valid fallback yet,
   /// and something missing or possibly mis-decoded.
   Future<List<SongRow>> enrichmentCandidates() async {
     final query = select(songs).join([

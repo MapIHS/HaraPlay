@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-// Schema v1 (docs/PLAN.md §6). Times are UTC epoch milliseconds. Every
+// The library database (schema history in `AppDatabase`). Times are UTC epoch milliseconds. Every
 // reference to songs.id cascades on update, so re-keying a song after a
 // MediaStore ID change moves its favorites, playlist entries and history.
 
@@ -20,7 +20,7 @@ enum PlaySource {
 
 enum RepeatSetting { off, all, one }
 
-/// Mirror of MediaStore, merged with tag fallbacks (§6.1).
+/// Mirror of MediaStore, merged with tag fallbacks ([SongTagFallbacks]).
 @DataClassName('SongRow')
 @TableIndex(name: 'songs_album_id', columns: {#albumId})
 @TableIndex(name: 'songs_artist', columns: {#artist})
@@ -195,7 +195,7 @@ class SongTechInfo extends Table {
 }
 
 /// Tags read from the file itself, used where MediaStore's are missing or
-/// mis-decoded (docs/PLAN.md §6.1).
+/// mis-decoded. Filled by `TagEnrichmentService` in the background.
 @DataClassName('SongTagFallbackRow')
 class SongTagFallbacks extends Table {
   IntColumn get songId => integer().references(

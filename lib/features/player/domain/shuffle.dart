@@ -1,6 +1,6 @@
 import 'dart:math';
 
-/// HaraPlay's own shuffle (docs/PLAN.md §3): the queue is physically
+/// HaraPlay's own shuffle: the queue is physically
 /// reordered, so the queue shows the real play order. A shuffled queue is
 /// described by `order`, where `order[playPosition]` is the entry's index
 /// in the original queue. Working with indexes (not songs) keeps a song
