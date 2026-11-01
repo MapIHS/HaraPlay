@@ -7,6 +7,9 @@ no internet permission at all: nothing leaves your device.
 Built with Flutter, with a bold neo-brutalist look (thick outlines, hard
 shadows, a saffron accent) in light and dark.
 
+> **Status:** early release (0.1.0). Found a bug or missing something? Please
+> open an [issue](https://github.com/MapIHS/HaraPlay/issues).
+
 <p>
   <img src="docs/screenshots/home-light.png" width="200" alt="Home, light theme">
   <img src="docs/screenshots/nowplaying-light.png" width="200" alt="Now Playing with a FLAC badge and the wavy seek bar">
@@ -66,6 +69,37 @@ shadows, a saffron accent) in light and dark.
 
 **Requires Android 7.0 (API 24) or newer.** Updates from the Releases page
 install over the previous version and keep your data.
+
+## Permissions
+
+These are all the permissions in the release app (its merged manifest).
+There is **no `INTERNET` permission**: HaraPlay can't connect to anything.
+
+| Permission | Why |
+|---|---|
+| `READ_MEDIA_AUDIO` (Android 13+) | Read your music files. |
+| `READ_EXTERNAL_STORAGE` (Android 12 and older only) | The same, on older Android versions. |
+| `POST_NOTIFICATIONS` (Android 13+) | Show the playback notification with its controls. |
+| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Keep playing when the app is in the background or the screen is off. |
+| `WAKE_LOCK` | Keep the processor awake while music plays with the screen off. |
+| `ACCESS_NETWORK_STATE` | Added by ExoPlayer (Android's media player library). It only lets the app check whether a network connection exists; it gives **no internet access**, and HaraPlay never uses it, since `INTERNET` is absent. |
+| `com.mmi.haraplay.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Added by AndroidX. A private, signature-level permission that keeps the app's own internal broadcasts from reaching other apps; it grants nothing. |
+
+## Known limitations
+
+- Gapless playback of **AAC / M4A** albums has a tiny 5–11 ms dip at each
+  track change (the encoder's padding, handled inside ExoPlayer). FLAC and
+  MP3 albums are fully gapless.
+- With the **equalizer** on, some devices' sound effects even out the
+  volume and can make a **crossfade** sound shorter and steeper.
+  "Crossfade when skipping" starts about 0.2–0.3 s after the tap.
+- **Lyrics** are read from a `.lrc` file next to the song (same name) or
+  from lyrics embedded in the file; there is no lyrics folder setting, and
+  synced lyrics embedded as ID3 SYLT frames aren't supported.
+- **Wallpaper colours** need Android 12 or newer.
+- A paused song's notification goes away after 10 minutes; the queue and
+  position are kept and resume from the app.
+- Android only.
 
 ## Build from source
 
