@@ -108,3 +108,28 @@ class PlaybackStatus {
     queueIndex: queueIndex,
   );
 }
+
+/// The index [step] places from [current] in a queue of [length], or null
+/// at either end unless [wrap] (repeat all) is set.
+int? neighbourIndex({
+  required int? current,
+  required int length,
+  required int step,
+  required bool wrap,
+}) {
+  if (current == null || length == 0) return null;
+  final target = current + step;
+  if (target >= 0 && target < length) return target;
+  return wrap ? target % length : null;
+}
+
+extension PlaybackNeighbours on PlaybackStatus {
+  /// The queue index [step] places from the current song, as the skip
+  /// buttons move: wrapping only under repeat all.
+  int? neighbour(int step) => neighbourIndex(
+    current: song == null ? null : queueIndex,
+    length: queue.length,
+    step: step,
+    wrap: repeat == RepeatSetting.all,
+  );
+}

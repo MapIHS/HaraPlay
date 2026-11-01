@@ -15,6 +15,18 @@ class MediaStoreChannel implements MediaSource {
   /// Android API level, e.g. 28 for Android 9.
   Future<int> sdkInt() async => await _channel.invokeMethod<int>('sdkInt') ?? 0;
 
+  /// [sdkInt], waiting for `MainActivity` to register the channel first.
+  ///
+  /// After a reboot, a system media browser (Bluetooth, Android Auto) can
+  /// bind audio_service's service before the app is opened; audio_service
+  /// then runs `main()` in a background engine that has none of our
+  /// channels. Failing there left the app stuck on its splash screen when
+  /// the user opened it later. Instead, startup waits here until the
+  /// activity attaches to the engine.
+  Future<int> sdkIntWhenReady({
+    Duration interval = const Duration(milliseconds: 250),
+  }) => retryUntilRegistered(sdkInt, interval: interval);
+
   @override
   Future<List<MediaStoreSong>> querySongs() async {
     final reply = await _channel.invokeMapMethod<Object?, Object?>(
@@ -77,3 +89,18 @@ final mediaSourceProvider = Provider<MediaSource>(
 final sdkIntProvider = Provider<int>(
   (ref) => throw UnimplementedError('sdkIntProvider must be overridden'),
 );
+
+/// Calls [call] until its platform channel has a handler (no more
+/// [MissingPluginException]); other errors are passed on.
+Future<T> retryUntilRegistered<T>(
+  Future<T> Function() call, {
+  Duration interval = const Duration(milliseconds: 250),
+}) async {
+  while (true) {
+    try {
+      return await call();
+    } on MissingPluginException {
+      await Future<void>.delayed(interval);
+    }
+  }
+}

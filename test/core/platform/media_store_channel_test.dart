@@ -214,4 +214,37 @@ void main() {
     expect(fromColumns[1].title, '08 Track');
     expect(fromColumns[0].discNumber, 2);
   });
+
+  test(
+    'startup waits for the channel instead of failing (headless start)',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      const channel = MethodChannel('test/late');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      var calls = 0;
+      // No handler yet: like audio_service's background engine before
+      // MainActivity has attached.
+      final reply = MediaStoreChannel(channel: channel)
+          .sdkIntWhenReady(interval: const Duration(milliseconds: 5));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls++;
+        return 34;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      expect(await reply, 34);
+      expect(calls, 1);
+
+      // Other failures are not swallowed.
+      messenger.setMockMethodCallHandler(
+        channel,
+        (call) async => throw PlatformException(code: 'boom'),
+      );
+      await expectLater(
+        MediaStoreChannel(channel: channel).sdkIntWhenReady(),
+        throwsA(isA<PlatformException>()),
+      );
+    },
+  );
 }

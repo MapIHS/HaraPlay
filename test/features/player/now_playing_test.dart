@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 import 'package:haraplay/core/database/app_database.dart';
@@ -124,8 +123,8 @@ void main() {
     expect(find.text('0:30'), findsOneWidget);
     expect(find.text('-2:30'), findsOneWidget);
 
-    // Tap the middle of the slider: seeks to about half way.
-    await tapAndSettle(tester, find.byType(Slider));
+    // Tap the middle of the bar: seeks to about half way.
+    await tapAndSettle(tester, find.byKey(SeekBar.trackKey));
     expect(player.seeks, hasLength(1));
     expect(player.seeks.single.inSeconds, inInclusiveRange(80, 100));
   });

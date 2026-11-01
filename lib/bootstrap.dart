@@ -32,7 +32,7 @@ Future<void> bootstrap() async {
   if (FrameStats.enabled) FrameStats.start();
   final preferences = await createPreferences();
   final channel = MediaStoreChannel();
-  final sdkInt = await channel.sdkInt();
+  final sdkInt = await channel.sdkIntWhenReady();
   // Checked before the first frame so the router starts on the right screen.
   final access = await MediaPermissionService(sdkInt: sdkInt).check();
 

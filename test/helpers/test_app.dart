@@ -17,6 +17,7 @@ import 'package:haraplay/features/lyrics/presentation/lyrics_providers.dart';
 import 'package:haraplay/features/onboarding/data/media_permission_service.dart';
 import 'package:haraplay/features/onboarding/presentation/onboarding_controllers.dart';
 import 'package:haraplay/features/player/presentation/player_providers.dart';
+import 'package:haraplay/features/player/presentation/seek_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -45,7 +46,10 @@ extension PumpHara on WidgetTester {
     final prefs = preferences ?? await createTestPreferences();
     await pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          seekWaveMotionProvider.overrideWithValue(false),
+        ],
         child: MaterialApp(
           theme: theme ?? HaraTheme.light,
           home: Scaffold(body: child),
@@ -73,6 +77,7 @@ Future<void> pumpHaraApp(
   AudioEffectsInfo effectsInfo = AudioEffectsInfo.none,
   AudioEffectsSink effectsSink = const NoAudioEffects(),
   FakeAudioInfo? audioInfo,
+  bool waveMotion = false,
 }) async {
   final preferences = await createTestPreferences(prefs);
   final db = database ?? createTestDatabase();
@@ -98,6 +103,8 @@ Future<void> pumpHaraApp(
         audioEffectsInfoProvider.overrideWithValue(effectsInfo),
         audioEffectsSinkProvider.overrideWithValue(effectsSink),
         audioInfoSourceProvider.overrideWithValue(audioInfo ?? FakeAudioInfo()),
+        // The wave's endless motion would keep pumpAndSettle from ending.
+        seekWaveMotionProvider.overrideWithValue(waveMotion),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

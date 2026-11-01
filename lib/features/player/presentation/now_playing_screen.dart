@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
-import '../../../core/artwork/song_artwork.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_colors.dart';
@@ -16,6 +15,7 @@ import '../../lyrics/presentation/lyrics_providers.dart';
 import '../../lyrics/presentation/lyrics_view.dart';
 import '../../playlists/presentation/playlist_providers.dart';
 import '../domain/queue_song.dart';
+import 'peek_artwork.dart';
 import 'player_providers.dart';
 import 'queue_sheet.dart';
 import 'seek_bar.dart';
@@ -134,7 +134,7 @@ class NowPlayingScreen extends ConsumerWidget {
               ),
               child: ref.watch(showLyricsProvider)
                   ? LyricsPanel(song: song)
-                  : Center(child: _SwipeableArtwork(song: song)),
+                  : Center(child: PeekArtwork(status: status)),
             ),
           ),
           Padding(
@@ -162,7 +162,7 @@ class NowPlayingScreen extends ConsumerWidget {
           const SizedBox(height: HaraSpacing.sm),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: HaraSpacing.sm),
-            child: SeekBar(duration: status.duration),
+            child: SeekBar(duration: status.duration, playing: status.playing),
           ),
           const SizedBox(height: HaraSpacing.md),
           _TransportControls(status: status),
@@ -256,67 +256,6 @@ class _TitleBlock extends StatelessWidget {
         const SizedBox(height: HaraSpacing.xs),
         TechBadge(song: song),
       ],
-    );
-  }
-}
-
-/// Large artwork that can be swiped sideways for the next / previous song.
-class _SwipeableArtwork extends ConsumerStatefulWidget {
-  const _SwipeableArtwork({required this.song});
-
-  final QueueSong song;
-
-  @override
-  ConsumerState<_SwipeableArtwork> createState() => _SwipeableArtworkState();
-}
-
-class _SwipeableArtworkState extends ConsumerState<_SwipeableArtwork> {
-  double _dx = 0;
-
-  void _onEnd(DragEndDetails details, double size) {
-    final velocity = details.primaryVelocity ?? 0;
-    final player = ref.read(playerProvider);
-    if (_dx < -size / 4 || velocity < -500) {
-      player.next();
-    } else if (_dx > size / 4 || velocity > 500) {
-      player.previous();
-    }
-    setState(() => _dx = 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = constraints.biggest.shortestSide;
-        final song = widget.song;
-        return Semantics(
-          image: true,
-          label:
-              'Artwork. Swipe left for the next song, right for the '
-              'previous one.',
-          child: GestureDetector(
-            onHorizontalDragUpdate: (d) =>
-                setState(() => _dx += d.primaryDelta ?? 0),
-            onHorizontalDragEnd: (d) => _onEnd(d, size),
-            child: AnimatedContainer(
-              duration: _dx == 0 ? HaraMotion.medium : Duration.zero,
-              curve: HaraMotion.emphasized,
-              transform: Matrix4.translationValues(_dx, 0, 0),
-              child: SongArtwork(
-                key: ValueKey(song.id),
-                songId: song.id,
-                albumId: song.albumId,
-                version: song.version,
-                size: size - HaraShadow.offset,
-                shadow: true,
-                borderRadius: HaraRadius.xl,
-                borderWidth: HaraBorder.regular,
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
