@@ -14,7 +14,7 @@
     <!-- No INTERNET permission: HaraPlay is fully offline. -->
 
     <application
-        android:label="HaraPlay"
+        android:label="${appName}"
         android:requestLegacyExternalStorage="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"

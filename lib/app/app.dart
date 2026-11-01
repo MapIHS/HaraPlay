@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,7 +41,8 @@ class _HaraPlayAppState extends ConsumerState<HaraPlayApp> {
       ref.watch(systemTonesProvider),
     );
     return MaterialApp.router(
-      title: 'HaraPlay',
+      // The recents-screen label; debug builds are "HaraPlay Dev".
+      title: kDebugMode ? 'HaraPlay Dev' : 'HaraPlay',
       debugShowCheckedModeBanner: false,
       theme: HaraTheme.build(light),
       darkTheme: HaraTheme.build(dark),

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- "HaraPlay Dev" (debug builds): the H-Wave inverted (saffron bars on
+       ink) with a DEV badge, so it can't be mistaken for the release app.
+       Original artwork, MIT licensed with the app. -->
+  <rect width="512" height="512" fill="#16130C"/>
+  <defs>
+    <g id="bars">
+      <rect x="104" y="110" width="48" height="240" rx="14"/>
+      <rect x="166.5" y="182" width="50" height="96" rx="14"/>
+      <rect x="231" y="148" width="50" height="164" rx="14"/>
+      <rect x="295.5" y="192" width="50" height="76" rx="14"/>
+      <rect x="360" y="110" width="48" height="240" rx="14"/>
+    </g>
+    <g id="dev">
+      <path d="M0 0h18a10 10 0 0 1 10 10v8a10 10 0 0 1 -10 10h-18zM7 7v14h10a4 4 0 0 0 4 -4v-6a4 4 0 0 0 -4 -4z" fill-rule="evenodd"/>
+      <path d="M36 0h24v7h-17v4h14v6h-14v4h17v7h-24z"/>
+      <path d="M66 0h8l8 19l8 -19h8l-12 28h-8z"/>
+    </g>
+  </defs>
+  <use href="#bars" fill="#FFC738" stroke="#FBF5E6" stroke-width="10"/>
+  <rect x="166" y="378" width="180" height="72" rx="18" fill="#FFC738" stroke="#FBF5E6" stroke-width="8"/>
+  <use href="#dev" transform="translate(207 394) scale(1.0)" fill="#16130C"/>
+</svg>

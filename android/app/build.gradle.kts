@@ -36,6 +36,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // The launcher label (AndroidManifest uses ${appName}).
+        manifestPlaceholders["appName"] = "HaraPlay"
     }
 
     signingConfigs {
@@ -50,6 +52,14 @@ android {
     }
 
     buildTypes {
+        // Debug builds are a separate app, "HaraPlay Dev"
+        // (com.mmi.haraplay.debug), so they install next to the release
+        // app with their own data. Its icon lives in src/debug/res.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appName"] = "HaraPlay Dev"
+        }
         release {
             // Without key.properties the release APK stays unsigned (it
             // won't install) instead of silently being debug-signed.

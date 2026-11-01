@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "HaraPlay Dev" (debug builds): ink behind the saffron bars, the reverse
+     of the release icon. Also the Android 12+ splash icon background. -->
+<resources>
+    <color name="ic_launcher_background">#16130C</color>
+</resources>
