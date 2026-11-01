@@ -10,6 +10,7 @@ import '../../../core/widgets/hara_sheet.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../audio_info/domain/audio_info.dart';
 import '../../audio_info/presentation/replay_gain_controller.dart';
+import '../../backup/presentation/backup_settings.dart';
 import '../../equalizer/presentation/equalizer_controller.dart';
 import '../../equalizer/presentation/equalizer_screen.dart';
 import '../../player/presentation/crossfade_controller.dart';
@@ -55,6 +56,8 @@ class SettingsScreen extends StatelessWidget {
           const _CrossfadeTiles(),
           const SectionHeader(title: 'Library'),
           const LibrarySettings(),
+          const SectionHeader(title: 'Your data'),
+          const BackupSettings(),
           const SectionHeader(title: 'About'),
           SettingsTile(
             icon: HaraIcons.info,

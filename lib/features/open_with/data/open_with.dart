@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../library/domain/song_matcher.dart';
 import '../../player/domain/player.dart';
 import '../../player/domain/queue_song.dart';
 
@@ -74,22 +75,6 @@ abstract interface class OpenWithLibrary {
   /// A song whose file is called [fileName] and is exactly [size] bytes
   /// (file managers often hand over a link without a path).
   Future<SongRow?> songByFile(String fileName, int size);
-}
-
-/// The phone's own storage has several names for the same place;
-/// MediaStore (and the library) use `/storage/emulated/0`.
-String normalizeStoragePath(String path) {
-  for (final alias in const [
-    '/sdcard/',
-    '/mnt/sdcard/',
-    '/storage/self/primary/',
-    '/mnt/user/0/primary/',
-  ]) {
-    if (path.startsWith(alias)) {
-      return '/storage/emulated/0/${path.substring(alias.length)}';
-    }
-  }
-  return path;
 }
 
 /// Plays opened files: the library song when the file is in the library

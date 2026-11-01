@@ -70,6 +70,9 @@ class EqualizerController extends Notifier<EqualizerSettings> {
     ),
   );
 
+  /// Settings from a backup.
+  void restore(EqualizerSettings settings) => _update(settings);
+
   /// Flat bands and no loudness boost; the custom curve is kept.
   void reset() => _update(state.copyWith(presetId: 'flat', loudnessDb: 0));
 
