@@ -158,7 +158,8 @@ class QueueState extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Lazily read audio format details (advanced feature A5).
+/// Audio format details and ReplayGain tags, read from the file's header
+/// when a song is played or its info opened (A5). Recreated in schema v4.
 @DataClassName('SongTechInfoRow')
 class SongTechInfo extends Table {
   IntColumn get songId => integer().references(
@@ -167,11 +168,21 @@ class SongTechInfo extends Table {
     onDelete: KeyAction.cascade,
     onUpdate: KeyAction.cascade,
   )();
+
+  /// The song's `date_modified` when the file was read. A different value
+  /// means the file changed (e.g. was re-tagged) and must be read again.
+  IntColumn get sourceDateModified => integer()();
   IntColumn get sampleRate => integer().nullable()();
   IntColumn get bitDepth => integer().nullable()();
   IntColumn get bitrate => integer().nullable()();
   IntColumn get channels => integer().nullable()();
   TextColumn get codec => text().nullable()();
+
+  /// ReplayGain in dB, and peaks (1.0 = full scale).
+  RealColumn get trackGain => real().nullable()();
+  RealColumn get trackPeak => real().nullable()();
+  RealColumn get albumGain => real().nullable()();
+  RealColumn get albumPeak => real().nullable()();
   IntColumn get readAt => integer()();
 
   @override

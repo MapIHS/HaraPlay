@@ -12,6 +12,8 @@ import 'core/database/app_database.dart';
 import 'core/debug/frame_stats.dart';
 import 'core/platform/media_store_channel.dart';
 import 'core/storage/preferences.dart';
+import 'features/audio_info/data/audio_info_repository.dart';
+import 'features/audio_info/presentation/replay_gain_controller.dart';
 import 'features/equalizer/data/audio_effects.dart';
 import 'features/equalizer/presentation/equalizer_controller.dart';
 import 'features/library/presentation/library_providers.dart';
@@ -37,6 +39,8 @@ Future<void> bootstrap() async {
   // Shared with the audio handler, which lives outside the widget tree.
   final database = AppDatabase.open();
   final artwork = ArtworkCache(channel, getApplicationCacheDirectory);
+  // Header details and ReplayGain, for the player and the UI.
+  final audioInfo = AudioInfoRepository(database.audioInfoDao);
 
   // Only effects the device has: just_audio creating a missing one would
   // break playback.
@@ -61,6 +65,7 @@ Future<void> bootstrap() async {
       recorder: PlayEventRecorder(database.playEventsDao),
       artwork: artwork,
       queueStore: database.queueStateDao,
+      audioInfo: audioInfo,
       // Overridable for device checks:
       // --dart-define=HARAPLAY_PAUSED_TIMEOUT_S=30
       releaseForeground: () async {
@@ -90,6 +95,7 @@ Future<void> bootstrap() async {
     ),
   );
   await handler.configureSession();
+  handler.setReplayGainMode(loadReplayGainMode(preferences));
 
   final container = ProviderContainer(
     overrides: [
@@ -102,6 +108,7 @@ Future<void> bootstrap() async {
       playerProvider.overrideWithValue(handler),
       audioEffectsInfoProvider.overrideWithValue(effectsInfo),
       audioEffectsSinkProvider.overrideWithValue(effects),
+      audioInfoSourceProvider.overrideWithValue(audioInfo),
     ],
   );
   runApp(

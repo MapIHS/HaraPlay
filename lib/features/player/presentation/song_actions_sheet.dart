@@ -11,6 +11,8 @@ import '../../../core/theme/hara_tokens.dart';
 import '../../../core/theme/hara_typography.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../core/widgets/hara_sheet.dart';
+import '../../audio_info/data/audio_info_repository.dart';
+import '../../audio_info/domain/audio_info.dart';
 import '../../library/presentation/library_providers.dart';
 import '../../playlists/presentation/add_to_playlist_sheet.dart';
 import '../../playlists/presentation/playlist_providers.dart';
@@ -287,13 +289,22 @@ String formatFileSize(int bytes) {
   return '${(bytes / 1024).round()} KB';
 }
 
-class _SongInfoTable extends StatelessWidget {
+class _SongInfoTable extends ConsumerWidget {
   const _SongInfoTable({required this.song});
 
   final SongRow song;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final audio = ref
+        .watch(
+          audioInfoProvider((
+            id: song.id,
+            path: song.path,
+            version: song.dateModified,
+          )),
+        )
+        .value;
     final added = DateTime.fromMillisecondsSinceEpoch(song.dateAdded).toLocal();
     final rows = <(String, String)>[
       ('Title', song.title),
@@ -310,7 +321,8 @@ class _SongInfoTable extends StatelessWidget {
       if (song.year != null) ('Year', '${song.year}'),
       if (song.genre != null) ('Genre', song.genre!),
       ('Length', formatDuration(Duration(milliseconds: song.durationMs))),
-      ('Format', formatLabel(song.path, song.mimeType)),
+      ('Format', audio?.codec ?? formatLabel(song.path, song.mimeType)),
+      if (audio != null) ...audioInfoRows(audio),
       ('Size', formatFileSize(song.sizeBytes)),
       (
         'Added',

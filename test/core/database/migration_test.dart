@@ -50,4 +50,45 @@ void main() {
       expect(columns, contains('source_label'));
     },
   );
+
+  test('v3 → v4 recreates song_tech_info with ReplayGain columns', () async {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    final db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          // song_tech_info as schema v1–v3 created it (never written).
+          raw
+            ..execute('''
+              CREATE TABLE song_tech_info (
+                song_id INTEGER NOT NULL,
+                sample_rate INTEGER NULL,
+                bit_depth INTEGER NULL,
+                bitrate INTEGER NULL,
+                channels INTEGER NULL,
+                codec TEXT NULL,
+                read_at INTEGER NOT NULL,
+                PRIMARY KEY (song_id)
+              )''')
+            ..userVersion = 3;
+        },
+      ),
+    );
+    addTearDown(db.close);
+
+    final columns = await db
+        .customSelect('PRAGMA table_info(song_tech_info)')
+        .map((r) => r.read<String>('name'))
+        .get();
+    expect(
+      columns,
+      containsAll([
+        'source_date_modified',
+        'track_gain',
+        'track_peak',
+        'album_gain',
+        'album_peak',
+      ]),
+    );
+    expect(await db.audioInfoDao.cached(1, version: 1), isNull);
+  });
 }

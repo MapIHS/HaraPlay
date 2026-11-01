@@ -6,9 +6,13 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_tokens.dart';
+import '../../../core/widgets/hara_sheet.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../audio_info/domain/audio_info.dart';
+import '../../audio_info/presentation/replay_gain_controller.dart';
 import '../../equalizer/presentation/equalizer_controller.dart';
 import '../../equalizer/presentation/equalizer_screen.dart';
+import 'choice_sheet.dart';
 import 'library_settings.dart';
 import 'settings_tile.dart';
 import 'theme_mode_picker.dart';
@@ -36,6 +40,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SectionHeader(title: 'Playback'),
           const _EqualizerTile(),
+          const _ReplayGainTile(),
           const SectionHeader(title: 'Library'),
           const LibrarySettings(),
           const SectionHeader(title: 'About'),
@@ -89,4 +94,43 @@ class _EqualizerTile extends ConsumerWidget {
     ),
     onTap: () => context.push(AppRoutes.equalizer),
   );
+}
+
+class _ReplayGainTile extends ConsumerWidget {
+  const _ReplayGainTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(replayGainProvider);
+    return SettingsTile(
+      icon: HaraIcons.audioLines,
+      title: 'ReplayGain',
+      subtitle: mode == ReplayGainMode.off
+          ? 'Off'
+          : '${mode.label} · ${replayGainDescription(mode)}',
+      onTap: () => showHaraSheet<void>(
+        context: context,
+        title: 'ReplayGain',
+        builder: (_) => const _ReplayGainSheet(),
+      ),
+    );
+  }
+}
+
+class _ReplayGainSheet extends ConsumerWidget {
+  const _ReplayGainSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      ChoiceSheet<ReplayGainMode>(
+        intro:
+            'Evens out the volume between songs, using the ReplayGain '
+            'tags your music files may have. Songs are only made quieter, '
+            'never louder; songs without tags are left alone.',
+        options: ReplayGainMode.values,
+        selected: ref.watch(replayGainProvider),
+        label: (mode) => mode.label,
+        description: replayGainDescription,
+        onSelected: ref.read(replayGainProvider.notifier).set,
+      );
 }

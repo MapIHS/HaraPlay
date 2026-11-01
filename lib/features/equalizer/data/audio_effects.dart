@@ -7,11 +7,21 @@ import 'package:just_audio/just_audio.dart';
 import '../domain/equalizer.dart';
 
 /// Asks the platform which effects exist (see `AudioEffectsProbe.kt`).
-Future<AudioEffectsInfo> probeAudioEffects() async {
+///
+/// Waits at most [timeout]: startup must not hang on a slow audio server
+/// (seen right after boot). Without an answer this launch plays without
+/// effects, which is safe; they come back on the next launch.
+Future<AudioEffectsInfo> probeAudioEffects({
+  Duration timeout = const Duration(milliseconds: 1500),
+}) async {
   try {
     final map = await const MethodChannel('haraplay/playback')
-        .invokeMapMethod<Object?, Object?>('audioEffects');
+        .invokeMapMethod<Object?, Object?>('audioEffects')
+        .timeout(timeout);
     return AudioEffectsInfo.fromChannel(map);
+  } on TimeoutException {
+    debugPrint('HaraPlay audio effects: probe timed out');
+    return AudioEffectsInfo.none;
   } on PlatformException {
     return AudioEffectsInfo.none;
   } on MissingPluginException {

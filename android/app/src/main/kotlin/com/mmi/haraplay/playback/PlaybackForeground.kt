@@ -2,12 +2,15 @@ package com.mmi.haraplay.playback
 
 import android.app.Service
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import com.ryanheise.audioservice.AudioService
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executors
 
 /**
  * `haraplay/playback` channel. HaraPlay keeps the playback service in the
@@ -35,12 +38,23 @@ class PlaybackForeground(
     ) {
         when (call.method) {
             "releaseForeground" -> result.success(releaseForeground())
-            "audioEffects" -> result.success(AudioEffectsProbe.probe(context))
+            // Talks to the audio server, which can be slow right after
+            // boot: off the main thread.
+            "audioEffects" -> background.execute {
+                val effects = AudioEffectsProbe.probe(context)
+                mainHandler.post { result.success(effects) }
+            }
             else -> result.notImplemented()
         }
     }
 
-    fun dispose() = channel.setMethodCallHandler(null)
+    private val background = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    fun dispose() {
+        channel.setMethodCallHandler(null)
+        background.shutdown()
+    }
 
     private fun releaseForeground(): Boolean = try {
         val field = AudioService::class.java.getDeclaredField("instance")

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/shell/bottom_nav.dart';
 import 'package:haraplay/core/database/app_database.dart';
+import 'package:haraplay/features/audio_info/domain/audio_info.dart';
 import 'package:haraplay/features/equalizer/domain/equalizer.dart';
 import 'package:haraplay/features/lyrics/presentation/lyrics_view.dart';
 import 'package:haraplay/features/player/domain/queue_song.dart';
@@ -209,6 +210,8 @@ void main() {
     );
     await settle(tester);
     await back(tester);
+    await tap(tester, find.text('ReplayGain'));
+    await back(tester);
     await back(tester);
 
     // Listening stats: both tabs, scrolled to the end.
@@ -250,6 +253,17 @@ void main() {
           ),
           loudness: true,
         ),
+        audioInfo: FakeAudioInfo({
+          // The widest badge: Now Playing and Song info.
+          '/storage/emulated/0/Music/song1.mp3': const AudioFileInfo(
+            codec: 'FLAC',
+            bitDepth: 24,
+            sampleRate: 192000,
+            channels: 6,
+            bitrate: 9216000,
+            replayGain: ReplayGain(trackGain: -12.34, albumGain: -11.1),
+          ),
+        }),
         lyrics: FakeLyricsLoader({
           // The first song in the queue (ordered by ID).
           '/storage/emulated/0/Music/song1.mp3':

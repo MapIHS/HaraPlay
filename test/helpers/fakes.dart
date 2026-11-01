@@ -8,6 +8,8 @@ import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/database/daos/library_dao.dart';
 import 'package:haraplay/core/platform/media_source.dart';
 import 'package:haraplay/core/platform/media_store_song.dart';
+import 'package:haraplay/features/audio_info/data/audio_info_repository.dart';
+import 'package:haraplay/features/audio_info/domain/audio_info.dart';
 import 'package:haraplay/features/library/data/file_tag_reader.dart';
 import 'package:haraplay/features/library/data/tag_merge.dart';
 import 'package:haraplay/features/lyrics/data/lyrics_loader.dart';
@@ -149,6 +151,11 @@ class FakePlayer implements Player {
 
   @override
   void cancelSleepTimer() => _setSleep(const SleepTimerOff());
+
+  ReplayGainMode replayGainMode = ReplayGainMode.off;
+
+  @override
+  void setReplayGainMode(ReplayGainMode mode) => replayGainMode = mode;
 
   final _status = StreamController<PlaybackStatus>.broadcast();
   final _position = StreamController<Duration>.broadcast();
@@ -322,5 +329,19 @@ class FakeLyricsLoader extends LyricsLoader {
     if (text == null) return null;
     final lyrics = parseLyrics(text);
     return lyrics.isEmpty ? null : lyrics.withSource(LyricsSource.sidecar);
+  }
+}
+
+/// Audio info by file path; other files are unreadable.
+class FakeAudioInfo implements AudioInfoSource {
+  FakeAudioInfo([this.byPath = const {}]);
+
+  final Map<String, AudioFileInfo> byPath;
+  final requested = <AudioInfoKey>[];
+
+  @override
+  Future<AudioFileInfo> infoFor(AudioInfoKey song) async {
+    requested.add(song);
+    return byPath[song.path] ?? AudioFileInfo.unreadable;
   }
 }

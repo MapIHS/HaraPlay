@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'daos/audio_info_dao.dart';
 import 'daos/browse_dao.dart';
 import 'daos/favorites_dao.dart';
 import 'daos/home_dao.dart';
@@ -38,6 +39,7 @@ part 'app_database.g.dart';
     HomeDao,
     SearchDao,
     StatsDao,
+    AudioInfoDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -47,9 +49,10 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.open() => AppDatabase(driftDatabase(name: 'haraplay'));
 
   /// v1: M4 schema. v2: songs.name_from_filename.
-  /// v3: queue_state.source_label.
+  /// v3: queue_state.source_label. v4: song_tech_info recreated with
+  /// ReplayGain and the file version.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +60,12 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.addColumn(songs, songs.nameFromFilename);
       if (from < 3) await m.addColumn(queueState, queueState.sourceLabel);
+      if (from < 4) {
+        // Nothing wrote song_tech_info before v4: recreate it with the
+        // new columns.
+        await m.deleteTable(songTechInfo.actualTableName);
+        await m.createTable(songTechInfo);
+      }
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),
   );

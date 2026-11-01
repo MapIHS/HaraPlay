@@ -3490,6 +3490,16 @@ class $SongTechInfoTable extends SongTechInfo
       'REFERENCES songs (id) ON UPDATE CASCADE ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _sourceDateModifiedMeta =
+      const VerificationMeta('sourceDateModified');
+  @override
+  late final GeneratedColumn<int> sourceDateModified = GeneratedColumn<int>(
+    'source_date_modified',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _sampleRateMeta = const VerificationMeta(
     'sampleRate',
   );
@@ -3543,6 +3553,50 @@ class $SongTechInfoTable extends SongTechInfo
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _trackGainMeta = const VerificationMeta(
+    'trackGain',
+  );
+  @override
+  late final GeneratedColumn<double> trackGain = GeneratedColumn<double>(
+    'track_gain',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackPeakMeta = const VerificationMeta(
+    'trackPeak',
+  );
+  @override
+  late final GeneratedColumn<double> trackPeak = GeneratedColumn<double>(
+    'track_peak',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumGainMeta = const VerificationMeta(
+    'albumGain',
+  );
+  @override
+  late final GeneratedColumn<double> albumGain = GeneratedColumn<double>(
+    'album_gain',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumPeakMeta = const VerificationMeta(
+    'albumPeak',
+  );
+  @override
+  late final GeneratedColumn<double> albumPeak = GeneratedColumn<double>(
+    'album_peak',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
   @override
   late final GeneratedColumn<int> readAt = GeneratedColumn<int>(
@@ -3555,11 +3609,16 @@ class $SongTechInfoTable extends SongTechInfo
   @override
   List<GeneratedColumn> get $columns => [
     songId,
+    sourceDateModified,
     sampleRate,
     bitDepth,
     bitrate,
     channels,
     codec,
+    trackGain,
+    trackPeak,
+    albumGain,
+    albumPeak,
     readAt,
   ];
   @override
@@ -3579,6 +3638,17 @@ class $SongTechInfoTable extends SongTechInfo
         _songIdMeta,
         songId.isAcceptableOrUnknown(data['song_id']!, _songIdMeta),
       );
+    }
+    if (data.containsKey('source_date_modified')) {
+      context.handle(
+        _sourceDateModifiedMeta,
+        sourceDateModified.isAcceptableOrUnknown(
+          data['source_date_modified']!,
+          _sourceDateModifiedMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceDateModifiedMeta);
     }
     if (data.containsKey('sample_rate')) {
       context.handle(
@@ -3610,6 +3680,30 @@ class $SongTechInfoTable extends SongTechInfo
         codec.isAcceptableOrUnknown(data['codec']!, _codecMeta),
       );
     }
+    if (data.containsKey('track_gain')) {
+      context.handle(
+        _trackGainMeta,
+        trackGain.isAcceptableOrUnknown(data['track_gain']!, _trackGainMeta),
+      );
+    }
+    if (data.containsKey('track_peak')) {
+      context.handle(
+        _trackPeakMeta,
+        trackPeak.isAcceptableOrUnknown(data['track_peak']!, _trackPeakMeta),
+      );
+    }
+    if (data.containsKey('album_gain')) {
+      context.handle(
+        _albumGainMeta,
+        albumGain.isAcceptableOrUnknown(data['album_gain']!, _albumGainMeta),
+      );
+    }
+    if (data.containsKey('album_peak')) {
+      context.handle(
+        _albumPeakMeta,
+        albumPeak.isAcceptableOrUnknown(data['album_peak']!, _albumPeakMeta),
+      );
+    }
     if (data.containsKey('read_at')) {
       context.handle(
         _readAtMeta,
@@ -3631,6 +3725,10 @@ class $SongTechInfoTable extends SongTechInfo
         DriftSqlType.int,
         data['${effectivePrefix}song_id'],
       )!,
+      sourceDateModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_date_modified'],
+      )!,
       sampleRate: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sample_rate'],
@@ -3651,6 +3749,22 @@ class $SongTechInfoTable extends SongTechInfo
         DriftSqlType.string,
         data['${effectivePrefix}codec'],
       ),
+      trackGain: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}track_gain'],
+      ),
+      trackPeak: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}track_peak'],
+      ),
+      albumGain: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}album_gain'],
+      ),
+      albumPeak: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}album_peak'],
+      ),
       readAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}read_at'],
@@ -3666,25 +3780,41 @@ class $SongTechInfoTable extends SongTechInfo
 
 class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
   final int songId;
+
+  /// The song's `date_modified` when the file was read. A different value
+  /// means the file changed (e.g. was re-tagged) and must be read again.
+  final int sourceDateModified;
   final int? sampleRate;
   final int? bitDepth;
   final int? bitrate;
   final int? channels;
   final String? codec;
+
+  /// ReplayGain in dB, and peaks (1.0 = full scale).
+  final double? trackGain;
+  final double? trackPeak;
+  final double? albumGain;
+  final double? albumPeak;
   final int readAt;
   const SongTechInfoRow({
     required this.songId,
+    required this.sourceDateModified,
     this.sampleRate,
     this.bitDepth,
     this.bitrate,
     this.channels,
     this.codec,
+    this.trackGain,
+    this.trackPeak,
+    this.albumGain,
+    this.albumPeak,
     required this.readAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['song_id'] = Variable<int>(songId);
+    map['source_date_modified'] = Variable<int>(sourceDateModified);
     if (!nullToAbsent || sampleRate != null) {
       map['sample_rate'] = Variable<int>(sampleRate);
     }
@@ -3700,6 +3830,18 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
     if (!nullToAbsent || codec != null) {
       map['codec'] = Variable<String>(codec);
     }
+    if (!nullToAbsent || trackGain != null) {
+      map['track_gain'] = Variable<double>(trackGain);
+    }
+    if (!nullToAbsent || trackPeak != null) {
+      map['track_peak'] = Variable<double>(trackPeak);
+    }
+    if (!nullToAbsent || albumGain != null) {
+      map['album_gain'] = Variable<double>(albumGain);
+    }
+    if (!nullToAbsent || albumPeak != null) {
+      map['album_peak'] = Variable<double>(albumPeak);
+    }
     map['read_at'] = Variable<int>(readAt);
     return map;
   }
@@ -3707,6 +3849,7 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
   SongTechInfoCompanion toCompanion(bool nullToAbsent) {
     return SongTechInfoCompanion(
       songId: Value(songId),
+      sourceDateModified: Value(sourceDateModified),
       sampleRate: sampleRate == null && nullToAbsent
           ? const Value.absent()
           : Value(sampleRate),
@@ -3722,6 +3865,18 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
       codec: codec == null && nullToAbsent
           ? const Value.absent()
           : Value(codec),
+      trackGain: trackGain == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackGain),
+      trackPeak: trackPeak == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackPeak),
+      albumGain: albumGain == null && nullToAbsent
+          ? const Value.absent()
+          : Value(albumGain),
+      albumPeak: albumPeak == null && nullToAbsent
+          ? const Value.absent()
+          : Value(albumPeak),
       readAt: Value(readAt),
     );
   }
@@ -3733,11 +3888,16 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SongTechInfoRow(
       songId: serializer.fromJson<int>(json['songId']),
+      sourceDateModified: serializer.fromJson<int>(json['sourceDateModified']),
       sampleRate: serializer.fromJson<int?>(json['sampleRate']),
       bitDepth: serializer.fromJson<int?>(json['bitDepth']),
       bitrate: serializer.fromJson<int?>(json['bitrate']),
       channels: serializer.fromJson<int?>(json['channels']),
       codec: serializer.fromJson<String?>(json['codec']),
+      trackGain: serializer.fromJson<double?>(json['trackGain']),
+      trackPeak: serializer.fromJson<double?>(json['trackPeak']),
+      albumGain: serializer.fromJson<double?>(json['albumGain']),
+      albumPeak: serializer.fromJson<double?>(json['albumPeak']),
       readAt: serializer.fromJson<int>(json['readAt']),
     );
   }
@@ -3746,35 +3906,53 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'songId': serializer.toJson<int>(songId),
+      'sourceDateModified': serializer.toJson<int>(sourceDateModified),
       'sampleRate': serializer.toJson<int?>(sampleRate),
       'bitDepth': serializer.toJson<int?>(bitDepth),
       'bitrate': serializer.toJson<int?>(bitrate),
       'channels': serializer.toJson<int?>(channels),
       'codec': serializer.toJson<String?>(codec),
+      'trackGain': serializer.toJson<double?>(trackGain),
+      'trackPeak': serializer.toJson<double?>(trackPeak),
+      'albumGain': serializer.toJson<double?>(albumGain),
+      'albumPeak': serializer.toJson<double?>(albumPeak),
       'readAt': serializer.toJson<int>(readAt),
     };
   }
 
   SongTechInfoRow copyWith({
     int? songId,
+    int? sourceDateModified,
     Value<int?> sampleRate = const Value.absent(),
     Value<int?> bitDepth = const Value.absent(),
     Value<int?> bitrate = const Value.absent(),
     Value<int?> channels = const Value.absent(),
     Value<String?> codec = const Value.absent(),
+    Value<double?> trackGain = const Value.absent(),
+    Value<double?> trackPeak = const Value.absent(),
+    Value<double?> albumGain = const Value.absent(),
+    Value<double?> albumPeak = const Value.absent(),
     int? readAt,
   }) => SongTechInfoRow(
     songId: songId ?? this.songId,
+    sourceDateModified: sourceDateModified ?? this.sourceDateModified,
     sampleRate: sampleRate.present ? sampleRate.value : this.sampleRate,
     bitDepth: bitDepth.present ? bitDepth.value : this.bitDepth,
     bitrate: bitrate.present ? bitrate.value : this.bitrate,
     channels: channels.present ? channels.value : this.channels,
     codec: codec.present ? codec.value : this.codec,
+    trackGain: trackGain.present ? trackGain.value : this.trackGain,
+    trackPeak: trackPeak.present ? trackPeak.value : this.trackPeak,
+    albumGain: albumGain.present ? albumGain.value : this.albumGain,
+    albumPeak: albumPeak.present ? albumPeak.value : this.albumPeak,
     readAt: readAt ?? this.readAt,
   );
   SongTechInfoRow copyWithCompanion(SongTechInfoCompanion data) {
     return SongTechInfoRow(
       songId: data.songId.present ? data.songId.value : this.songId,
+      sourceDateModified: data.sourceDateModified.present
+          ? data.sourceDateModified.value
+          : this.sourceDateModified,
       sampleRate: data.sampleRate.present
           ? data.sampleRate.value
           : this.sampleRate,
@@ -3782,6 +3960,10 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
       bitrate: data.bitrate.present ? data.bitrate.value : this.bitrate,
       channels: data.channels.present ? data.channels.value : this.channels,
       codec: data.codec.present ? data.codec.value : this.codec,
+      trackGain: data.trackGain.present ? data.trackGain.value : this.trackGain,
+      trackPeak: data.trackPeak.present ? data.trackPeak.value : this.trackPeak,
+      albumGain: data.albumGain.present ? data.albumGain.value : this.albumGain,
+      albumPeak: data.albumPeak.present ? data.albumPeak.value : this.albumPeak,
       readAt: data.readAt.present ? data.readAt.value : this.readAt,
     );
   }
@@ -3790,11 +3972,16 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
   String toString() {
     return (StringBuffer('SongTechInfoRow(')
           ..write('songId: $songId, ')
+          ..write('sourceDateModified: $sourceDateModified, ')
           ..write('sampleRate: $sampleRate, ')
           ..write('bitDepth: $bitDepth, ')
           ..write('bitrate: $bitrate, ')
           ..write('channels: $channels, ')
           ..write('codec: $codec, ')
+          ..write('trackGain: $trackGain, ')
+          ..write('trackPeak: $trackPeak, ')
+          ..write('albumGain: $albumGain, ')
+          ..write('albumPeak: $albumPeak, ')
           ..write('readAt: $readAt')
           ..write(')'))
         .toString();
@@ -3803,11 +3990,16 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
   @override
   int get hashCode => Object.hash(
     songId,
+    sourceDateModified,
     sampleRate,
     bitDepth,
     bitrate,
     channels,
     codec,
+    trackGain,
+    trackPeak,
+    albumGain,
+    albumPeak,
     readAt,
   );
   @override
@@ -3815,76 +4007,118 @@ class SongTechInfoRow extends DataClass implements Insertable<SongTechInfoRow> {
       identical(this, other) ||
       (other is SongTechInfoRow &&
           other.songId == this.songId &&
+          other.sourceDateModified == this.sourceDateModified &&
           other.sampleRate == this.sampleRate &&
           other.bitDepth == this.bitDepth &&
           other.bitrate == this.bitrate &&
           other.channels == this.channels &&
           other.codec == this.codec &&
+          other.trackGain == this.trackGain &&
+          other.trackPeak == this.trackPeak &&
+          other.albumGain == this.albumGain &&
+          other.albumPeak == this.albumPeak &&
           other.readAt == this.readAt);
 }
 
 class SongTechInfoCompanion extends UpdateCompanion<SongTechInfoRow> {
   final Value<int> songId;
+  final Value<int> sourceDateModified;
   final Value<int?> sampleRate;
   final Value<int?> bitDepth;
   final Value<int?> bitrate;
   final Value<int?> channels;
   final Value<String?> codec;
+  final Value<double?> trackGain;
+  final Value<double?> trackPeak;
+  final Value<double?> albumGain;
+  final Value<double?> albumPeak;
   final Value<int> readAt;
   const SongTechInfoCompanion({
     this.songId = const Value.absent(),
+    this.sourceDateModified = const Value.absent(),
     this.sampleRate = const Value.absent(),
     this.bitDepth = const Value.absent(),
     this.bitrate = const Value.absent(),
     this.channels = const Value.absent(),
     this.codec = const Value.absent(),
+    this.trackGain = const Value.absent(),
+    this.trackPeak = const Value.absent(),
+    this.albumGain = const Value.absent(),
+    this.albumPeak = const Value.absent(),
     this.readAt = const Value.absent(),
   });
   SongTechInfoCompanion.insert({
     this.songId = const Value.absent(),
+    required int sourceDateModified,
     this.sampleRate = const Value.absent(),
     this.bitDepth = const Value.absent(),
     this.bitrate = const Value.absent(),
     this.channels = const Value.absent(),
     this.codec = const Value.absent(),
+    this.trackGain = const Value.absent(),
+    this.trackPeak = const Value.absent(),
+    this.albumGain = const Value.absent(),
+    this.albumPeak = const Value.absent(),
     required int readAt,
-  }) : readAt = Value(readAt);
+  }) : sourceDateModified = Value(sourceDateModified),
+       readAt = Value(readAt);
   static Insertable<SongTechInfoRow> custom({
     Expression<int>? songId,
+    Expression<int>? sourceDateModified,
     Expression<int>? sampleRate,
     Expression<int>? bitDepth,
     Expression<int>? bitrate,
     Expression<int>? channels,
     Expression<String>? codec,
+    Expression<double>? trackGain,
+    Expression<double>? trackPeak,
+    Expression<double>? albumGain,
+    Expression<double>? albumPeak,
     Expression<int>? readAt,
   }) {
     return RawValuesInsertable({
       if (songId != null) 'song_id': songId,
+      if (sourceDateModified != null)
+        'source_date_modified': sourceDateModified,
       if (sampleRate != null) 'sample_rate': sampleRate,
       if (bitDepth != null) 'bit_depth': bitDepth,
       if (bitrate != null) 'bitrate': bitrate,
       if (channels != null) 'channels': channels,
       if (codec != null) 'codec': codec,
+      if (trackGain != null) 'track_gain': trackGain,
+      if (trackPeak != null) 'track_peak': trackPeak,
+      if (albumGain != null) 'album_gain': albumGain,
+      if (albumPeak != null) 'album_peak': albumPeak,
       if (readAt != null) 'read_at': readAt,
     });
   }
 
   SongTechInfoCompanion copyWith({
     Value<int>? songId,
+    Value<int>? sourceDateModified,
     Value<int?>? sampleRate,
     Value<int?>? bitDepth,
     Value<int?>? bitrate,
     Value<int?>? channels,
     Value<String?>? codec,
+    Value<double?>? trackGain,
+    Value<double?>? trackPeak,
+    Value<double?>? albumGain,
+    Value<double?>? albumPeak,
     Value<int>? readAt,
   }) {
     return SongTechInfoCompanion(
       songId: songId ?? this.songId,
+      sourceDateModified: sourceDateModified ?? this.sourceDateModified,
       sampleRate: sampleRate ?? this.sampleRate,
       bitDepth: bitDepth ?? this.bitDepth,
       bitrate: bitrate ?? this.bitrate,
       channels: channels ?? this.channels,
       codec: codec ?? this.codec,
+      trackGain: trackGain ?? this.trackGain,
+      trackPeak: trackPeak ?? this.trackPeak,
+      albumGain: albumGain ?? this.albumGain,
+      albumPeak: albumPeak ?? this.albumPeak,
       readAt: readAt ?? this.readAt,
     );
   }
@@ -3894,6 +4128,9 @@ class SongTechInfoCompanion extends UpdateCompanion<SongTechInfoRow> {
     final map = <String, Expression>{};
     if (songId.present) {
       map['song_id'] = Variable<int>(songId.value);
+    }
+    if (sourceDateModified.present) {
+      map['source_date_modified'] = Variable<int>(sourceDateModified.value);
     }
     if (sampleRate.present) {
       map['sample_rate'] = Variable<int>(sampleRate.value);
@@ -3910,6 +4147,18 @@ class SongTechInfoCompanion extends UpdateCompanion<SongTechInfoRow> {
     if (codec.present) {
       map['codec'] = Variable<String>(codec.value);
     }
+    if (trackGain.present) {
+      map['track_gain'] = Variable<double>(trackGain.value);
+    }
+    if (trackPeak.present) {
+      map['track_peak'] = Variable<double>(trackPeak.value);
+    }
+    if (albumGain.present) {
+      map['album_gain'] = Variable<double>(albumGain.value);
+    }
+    if (albumPeak.present) {
+      map['album_peak'] = Variable<double>(albumPeak.value);
+    }
     if (readAt.present) {
       map['read_at'] = Variable<int>(readAt.value);
     }
@@ -3920,11 +4169,16 @@ class SongTechInfoCompanion extends UpdateCompanion<SongTechInfoRow> {
   String toString() {
     return (StringBuffer('SongTechInfoCompanion(')
           ..write('songId: $songId, ')
+          ..write('sourceDateModified: $sourceDateModified, ')
           ..write('sampleRate: $sampleRate, ')
           ..write('bitDepth: $bitDepth, ')
           ..write('bitrate: $bitrate, ')
           ..write('channels: $channels, ')
           ..write('codec: $codec, ')
+          ..write('trackGain: $trackGain, ')
+          ..write('trackPeak: $trackPeak, ')
+          ..write('albumGain: $albumGain, ')
+          ..write('albumPeak: $albumPeak, ')
           ..write('readAt: $readAt')
           ..write(')'))
         .toString();
@@ -4705,6 +4959,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final HomeDao homeDao = HomeDao(this as AppDatabase);
   late final SearchDao searchDao = SearchDao(this as AppDatabase);
   late final StatsDao statsDao = StatsDao(this as AppDatabase);
+  late final AudioInfoDao audioInfoDao = AudioInfoDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7739,21 +7994,31 @@ typedef $$QueueStateTableProcessedTableManager =
 typedef $$SongTechInfoTableCreateCompanionBuilder =
     SongTechInfoCompanion Function({
       Value<int> songId,
+      required int sourceDateModified,
       Value<int?> sampleRate,
       Value<int?> bitDepth,
       Value<int?> bitrate,
       Value<int?> channels,
       Value<String?> codec,
+      Value<double?> trackGain,
+      Value<double?> trackPeak,
+      Value<double?> albumGain,
+      Value<double?> albumPeak,
       required int readAt,
     });
 typedef $$SongTechInfoTableUpdateCompanionBuilder =
     SongTechInfoCompanion Function({
       Value<int> songId,
+      Value<int> sourceDateModified,
       Value<int?> sampleRate,
       Value<int?> bitDepth,
       Value<int?> bitrate,
       Value<int?> channels,
       Value<String?> codec,
+      Value<double?> trackGain,
+      Value<double?> trackPeak,
+      Value<double?> albumGain,
+      Value<double?> albumPeak,
       Value<int> readAt,
     });
 
@@ -7788,6 +8053,11 @@ class $$SongTechInfoTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<int> get sourceDateModified => $composableBuilder(
+    column: $table.sourceDateModified,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get sampleRate => $composableBuilder(
     column: $table.sampleRate,
     builder: (column) => ColumnFilters(column),
@@ -7810,6 +8080,26 @@ class $$SongTechInfoTableFilterComposer
 
   ColumnFilters<String> get codec => $composableBuilder(
     column: $table.codec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trackGain => $composableBuilder(
+    column: $table.trackGain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trackPeak => $composableBuilder(
+    column: $table.trackPeak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get albumGain => $composableBuilder(
+    column: $table.albumGain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get albumPeak => $composableBuilder(
+    column: $table.albumPeak,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7851,6 +8141,11 @@ class $$SongTechInfoTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<int> get sourceDateModified => $composableBuilder(
+    column: $table.sourceDateModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sampleRate => $composableBuilder(
     column: $table.sampleRate,
     builder: (column) => ColumnOrderings(column),
@@ -7873,6 +8168,26 @@ class $$SongTechInfoTableOrderingComposer
 
   ColumnOrderings<String> get codec => $composableBuilder(
     column: $table.codec,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get trackGain => $composableBuilder(
+    column: $table.trackGain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get trackPeak => $composableBuilder(
+    column: $table.trackPeak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get albumGain => $composableBuilder(
+    column: $table.albumGain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get albumPeak => $composableBuilder(
+    column: $table.albumPeak,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7914,6 +8229,11 @@ class $$SongTechInfoTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<int> get sourceDateModified => $composableBuilder(
+    column: $table.sourceDateModified,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get sampleRate => $composableBuilder(
     column: $table.sampleRate,
     builder: (column) => column,
@@ -7930,6 +8250,18 @@ class $$SongTechInfoTableAnnotationComposer
 
   GeneratedColumn<String> get codec =>
       $composableBuilder(column: $table.codec, builder: (column) => column);
+
+  GeneratedColumn<double> get trackGain =>
+      $composableBuilder(column: $table.trackGain, builder: (column) => column);
+
+  GeneratedColumn<double> get trackPeak =>
+      $composableBuilder(column: $table.trackPeak, builder: (column) => column);
+
+  GeneratedColumn<double> get albumGain =>
+      $composableBuilder(column: $table.albumGain, builder: (column) => column);
+
+  GeneratedColumn<double> get albumPeak =>
+      $composableBuilder(column: $table.albumPeak, builder: (column) => column);
 
   GeneratedColumn<int> get readAt =>
       $composableBuilder(column: $table.readAt, builder: (column) => column);
@@ -7987,37 +8319,57 @@ class $$SongTechInfoTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> songId = const Value.absent(),
+                Value<int> sourceDateModified = const Value.absent(),
                 Value<int?> sampleRate = const Value.absent(),
                 Value<int?> bitDepth = const Value.absent(),
                 Value<int?> bitrate = const Value.absent(),
                 Value<int?> channels = const Value.absent(),
                 Value<String?> codec = const Value.absent(),
+                Value<double?> trackGain = const Value.absent(),
+                Value<double?> trackPeak = const Value.absent(),
+                Value<double?> albumGain = const Value.absent(),
+                Value<double?> albumPeak = const Value.absent(),
                 Value<int> readAt = const Value.absent(),
               }) => SongTechInfoCompanion(
                 songId: songId,
+                sourceDateModified: sourceDateModified,
                 sampleRate: sampleRate,
                 bitDepth: bitDepth,
                 bitrate: bitrate,
                 channels: channels,
                 codec: codec,
+                trackGain: trackGain,
+                trackPeak: trackPeak,
+                albumGain: albumGain,
+                albumPeak: albumPeak,
                 readAt: readAt,
               ),
           createCompanionCallback:
               ({
                 Value<int> songId = const Value.absent(),
+                required int sourceDateModified,
                 Value<int?> sampleRate = const Value.absent(),
                 Value<int?> bitDepth = const Value.absent(),
                 Value<int?> bitrate = const Value.absent(),
                 Value<int?> channels = const Value.absent(),
                 Value<String?> codec = const Value.absent(),
+                Value<double?> trackGain = const Value.absent(),
+                Value<double?> trackPeak = const Value.absent(),
+                Value<double?> albumGain = const Value.absent(),
+                Value<double?> albumPeak = const Value.absent(),
                 required int readAt,
               }) => SongTechInfoCompanion.insert(
                 songId: songId,
+                sourceDateModified: sourceDateModified,
                 sampleRate: sampleRate,
                 bitDepth: bitDepth,
                 bitrate: bitrate,
                 channels: channels,
                 codec: codec,
+                trackGain: trackGain,
+                trackPeak: trackPeak,
+                albumGain: albumGain,
+                albumPeak: albumPeak,
                 readAt: readAt,
               ),
           withReferenceMapper: (p0) => p0

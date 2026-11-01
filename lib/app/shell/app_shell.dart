@@ -34,12 +34,18 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _selectTab(int index) {
     _panel.collapse();
+    _dropFocus();
     // Re-selecting the current tab pops it back to its root.
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
+
+  /// Hidden tabs stay mounted, so a focused Search field would keep focus
+  /// on another tab, and its keyboard would come back over that tab when
+  /// a page above the shell (Settings, Stats) closes.
+  void _dropFocus() => FocusManager.instance.primaryFocus?.unfocus();
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +65,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           if (_panel.isExpanded) {
             _panel.collapse();
           } else {
+            _dropFocus();
             shell.goBranch(0);
           }
         },

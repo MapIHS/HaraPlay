@@ -8,12 +8,15 @@ import 'package:just_audio/just_audio.dart';
 import '../../../core/artwork/artwork_cache.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/queue_state_dao.dart';
+import '../../audio_info/data/audio_info_repository.dart';
+import '../../audio_info/domain/audio_info.dart';
 import '../domain/player.dart';
 import '../domain/queue_model.dart';
 import '../domain/queue_restore.dart';
 import '../domain/queue_song.dart';
 import '../domain/sleep_timer_state.dart';
 import 'play_event_recorder.dart';
+import 'player_volume.dart';
 import 'sleep_timer.dart';
 
 /// Owns the single [AudioPlayer] and the queue, and publishes state to the
@@ -34,6 +37,7 @@ class HaraAudioHandler extends BaseAudioHandler
     Random? random,
     this.pausedTimeout = const Duration(minutes: 10),
     Future<void> Function()? releaseForeground,
+    this._audioInfo,
   }) : _random = random ?? Random(),
        _releaseForeground = releaseForeground ?? (() async {}) {
     _subscriptions.addAll([
@@ -73,6 +77,7 @@ class HaraAudioHandler extends BaseAudioHandler
   final PlayEventRecorder _recorder;
   final ArtworkCache _artwork;
   final QueueStateDao? _queueStore;
+  final AudioInfoSource? _audioInfo;
   final Random _random;
   final _subscriptions = <StreamSubscription<Object?>>[];
 
@@ -90,7 +95,12 @@ class HaraAudioHandler extends BaseAudioHandler
   bool _rebuilding = false;
   Duration _lastSavedPosition = Duration.zero;
 
-  late final _sleep = SleepTimer(setVolume: _player.setVolume, pause: pause);
+  /// ReplayGain times the sleep timer's fade.
+  late final _volume = PlayerVolume(
+    setVolume: _player.setVolume,
+    source: _audioInfo,
+  );
+  late final _sleep = SleepTimer(setVolume: _volume.setFade, pause: pause);
 
   final _status = StreamController<PlaybackStatus>.broadcast();
   PlaybackStatus _lastStatus = PlaybackStatus.idle;
@@ -379,6 +389,12 @@ class HaraAudioHandler extends BaseAudioHandler
   @override
   void cancelSleepTimer() => _sleep.cancel();
 
+  @override
+  void setReplayGainMode(ReplayGainMode mode) {
+    unawaited(_volume.setMode(mode));
+    _volume.upcoming(_keyOf(_upcomingSong));
+  }
+
   // audio_service callbacks -------------------------------------------------
 
   @override
@@ -497,6 +513,7 @@ class HaraAudioHandler extends BaseAudioHandler
     _recorder.trackChanged(song, source: _source);
     _publishStatus();
     unawaited(_savePosition());
+    unawaited(_volume.songChanged(_keyOf(song), next: _keyOf(_upcomingSong)));
     if (song == null) return;
     final item = _mediaItemFor(song);
     mediaItem.add(item);
@@ -576,7 +593,21 @@ class HaraAudioHandler extends BaseAudioHandler
     }
   }
 
-  void _publishQueue() => queue.add([for (final s in _songs) _mediaItemFor(s)]);
+  void _publishQueue() {
+    queue.add([for (final s in _songs) _mediaItemFor(s)]);
+    _volume.upcoming(_keyOf(_upcomingSong));
+  }
+
+  /// The song that plays after the current one ends by itself.
+  QueueSong? get _upcomingSong {
+    if (_repeat == RepeatSetting.one) return _currentSong;
+    final index = _neighbour(1);
+    return index == null ? null : _songs[index];
+  }
+
+  static AudioInfoKey? _keyOf(QueueSong? song) => song == null
+      ? null
+      : (id: song.id, path: song.path, version: song.version);
 
   void _publishStatus() {
     final processing = _player.processingState;

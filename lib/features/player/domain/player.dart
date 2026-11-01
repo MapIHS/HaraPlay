@@ -1,4 +1,5 @@
 import '../../../core/database/app_database.dart';
+import '../../audio_info/domain/audio_info.dart';
 import 'queue_song.dart';
 import 'sleep_timer_state.dart';
 
@@ -71,4 +72,7 @@ abstract interface class Player {
   void sleepAtEndOfTrack();
 
   void cancelSleepTimer();
+
+  /// Evens out loudness with the songs' ReplayGain tags (A5).
+  void setReplayGainMode(ReplayGainMode mode);
 }

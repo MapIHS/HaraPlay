@@ -34,7 +34,8 @@ void main() {
 
     await tester.tap(find.text('Hide short audio'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Off'));
+    // The sheet's option, not the ReplayGain tile's "Off".
+    await tester.tap(find.text('Off').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Off: every audio file is shown'), findsOneWidget);

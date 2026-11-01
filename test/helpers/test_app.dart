@@ -7,6 +7,7 @@ import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/media_store_channel.dart';
 import 'package:haraplay/core/storage/preferences.dart';
 import 'package:haraplay/core/theme/hara_theme.dart';
+import 'package:haraplay/features/audio_info/data/audio_info_repository.dart';
 import 'package:haraplay/features/equalizer/data/audio_effects.dart';
 import 'package:haraplay/features/equalizer/domain/equalizer.dart';
 import 'package:haraplay/features/equalizer/presentation/equalizer_controller.dart';
@@ -71,6 +72,7 @@ Future<void> pumpHaraApp(
   FakeLyricsLoader? lyrics,
   AudioEffectsInfo effectsInfo = AudioEffectsInfo.none,
   AudioEffectsSink effectsSink = const NoAudioEffects(),
+  FakeAudioInfo? audioInfo,
 }) async {
   final preferences = await createTestPreferences(prefs);
   final db = database ?? createTestDatabase();
@@ -95,6 +97,7 @@ Future<void> pumpHaraApp(
         lyricsLoaderProvider.overrideWithValue(lyrics ?? FakeLyricsLoader()),
         audioEffectsInfoProvider.overrideWithValue(effectsInfo),
         audioEffectsSinkProvider.overrideWithValue(effectsSink),
+        audioInfoSourceProvider.overrideWithValue(audioInfo ?? FakeAudioInfo()),
         tagEnrichmentServiceProvider.overrideWith((ref) {
           final service = TagEnrichmentService(
             ref.watch(libraryDaoProvider),

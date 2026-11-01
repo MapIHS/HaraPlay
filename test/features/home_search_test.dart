@@ -295,6 +295,22 @@ void main() {
       expect(player.played, isNotEmpty);
     });
 
+    testWidgets('switching tabs drops the search focus, so closing '
+        'Settings does not bring the keyboard back over Home', (tester) async {
+      await openSearch(tester);
+      await type(tester, 'drive');
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      await tapAndSettle(tester, navTab('Home'));
+      expect(tester.testTextInput.isVisible, isFalse);
+      await tapAndSettle(tester, find.byTooltip('Settings'));
+      await tester.binding.handlePopRoute();
+      await settleDb(tester);
+
+      expect(find.byTooltip('Settings'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isFalse);
+    });
+
     testWidgets('recent searches: newest first, remove and clear', (
       tester,
     ) async {

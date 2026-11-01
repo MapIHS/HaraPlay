@@ -11,6 +11,7 @@ import '../../../core/theme/hara_tokens.dart';
 import '../../../core/widgets/hara_button.dart';
 import '../../../core/widgets/hara_icon_button.dart';
 import '../../../core/widgets/heart_mark.dart';
+import '../../audio_info/presentation/tech_badge.dart';
 import '../../lyrics/presentation/lyrics_providers.dart';
 import '../../lyrics/presentation/lyrics_view.dart';
 import '../../playlists/presentation/playlist_providers.dart';
@@ -252,6 +253,8 @@ class _TitleBlock extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: HaraSpacing.xs),
+        TechBadge(song: song),
       ],
     );
   }
