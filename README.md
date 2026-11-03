@@ -37,8 +37,9 @@ shadows, a saffron accent) in light and dark.
 
 **Playback**
 - Gapless playback, shuffle and repeat, a reorderable queue.
-- Notification and lock-screen controls; pauses when headphones are
-  unplugged.
+- Notification and lock-screen controls with a ✕ to close; pauses when
+  headphones are unplugged. Optionally stops when swiped away from Recent
+  apps.
 - Optional crossfade (2–12 s); tracks of the same album played in order stay
   gapless.
 - Sleep timer with a gentle fade-out, playback speed (0.5–2×, pitch kept).
@@ -97,8 +98,10 @@ There is **no `INTERNET` permission**: HaraPlay can't connect to anything.
   from lyrics embedded in the file; there is no lyrics folder setting, and
   synced lyrics embedded as ID3 SYLT frames aren't supported.
 - **Wallpaper colours** need Android 12 or newer.
-- A paused song's notification goes away after 10 minutes; the queue and
-  position are kept and resume from the app.
+- While paused, the notification stays on the lock screen for 2 minutes
+  and can be swiped away after that (or closed any time with its ✕); after
+  10 minutes paused it closes by itself. The queue and position are kept
+  and resume from the app.
 - Android only.
 
 ## Build from source

@@ -37,6 +37,8 @@ void main() {
     await openSettings(tester);
     expect(find.text('Hides files shorter than 30 s'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Hide short audio'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hide short audio'));
     await tester.pumpAndSettle();
     // The sheet's option, not the ReplayGain tile's "Off".

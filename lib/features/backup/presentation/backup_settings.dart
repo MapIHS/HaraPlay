@@ -13,6 +13,7 @@ import '../../library/presentation/library_providers.dart';
 import '../../player/presentation/crossfade_controller.dart';
 import '../../player/presentation/playback_speed.dart';
 import '../../player/presentation/player_providers.dart';
+import '../../player/presentation/stop_on_task_removed.dart';
 import '../../settings/presentation/color_choice_controller.dart';
 import '../../settings/presentation/excluded_folders_controller.dart';
 import '../../settings/presentation/min_song_length_controller.dart';
@@ -218,6 +219,7 @@ Future<void> reloadSettings(WidgetRef ref) async {
     replayGainProvider,
     playbackSpeedProvider,
     crossfadeProvider,
+    stopOnTaskRemovedProvider,
     equalizerProvider,
     songSortProvider,
     albumSortProvider,
@@ -230,7 +232,8 @@ Future<void> reloadSettings(WidgetRef ref) async {
   final player = ref.read(playerProvider);
   player
     ..setReplayGainMode(ref.read(replayGainProvider))
-    ..setCrossfade(ref.read(crossfadeProvider));
+    ..setCrossfade(ref.read(crossfadeProvider))
+    ..setStopOnTaskRemoved(ref.read(stopOnTaskRemovedProvider));
   await player.setSpeed(ref.read(playbackSpeedProvider));
   await applyEqualizerSettings(
     ref.read(equalizerProvider),

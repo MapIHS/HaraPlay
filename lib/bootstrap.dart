@@ -31,6 +31,7 @@ import 'features/player/data/play_event_recorder.dart';
 import 'features/player/presentation/crossfade_controller.dart';
 import 'features/player/presentation/playback_speed.dart';
 import 'features/player/presentation/player_providers.dart';
+import 'features/player/presentation/stop_on_task_removed.dart';
 import 'features/settings/presentation/color_choice_controller.dart';
 
 /// Initialises app-wide services before the first frame: preferences, the
@@ -63,7 +64,7 @@ Future<void> bootstrap() async {
   // (an effect belongs to one player's audio session); the group keeps
   // their settings in step.
   final effects = AudioEffectsGroup([
-    JustAudioEffects(equalizer: equalizer, loudness: loudness),
+    JustAudioEffects.of(equalizer: equalizer, loudness: loudness),
   ]);
   await applyEqualizerSettings(
     loadEqualizerSettings(preferences),
@@ -88,12 +89,13 @@ Future<void> bootstrap() async {
         final eq = effectsInfo.equalizer == null ? null : AndroidEqualizer();
         final boost = effectsInfo.loudness ? AndroidLoudnessEnhancer() : null;
         unawaited(
-          effects.add(JustAudioEffects(equalizer: eq, loudness: boost)),
+          effects.add(JustAudioEffects.of(equalizer: eq, loudness: boost)),
         );
         return JustAudioTailPlayer(effects: [?eq, ?boost]);
       },
       // Overridable for device checks:
       // --dart-define=HARAPLAY_PAUSED_TIMEOUT_S=30
+      // --dart-define=HARAPLAY_DETACH_AFTER_S=10
       releaseForeground: () async {
         try {
           await const MethodChannel('haraplay/playback')
@@ -102,6 +104,20 @@ Future<void> bootstrap() async {
           // Best effort: the notification then stays until the app closes.
         }
       },
+      detachForeground: () async {
+        try {
+          await const MethodChannel('haraplay/playback')
+              .invokeMethod<bool>('detachForeground');
+        } on PlatformException {
+          // Best effort: the notification then stays until the timeout.
+        }
+      },
+      detachAfter: const Duration(
+        seconds: int.fromEnvironment(
+          'HARAPLAY_DETACH_AFTER_S',
+          defaultValue: 120,
+        ),
+      ),
       pausedTimeout: const Duration(
         seconds: int.fromEnvironment(
           'HARAPLAY_PAUSED_TIMEOUT_S',
@@ -116,14 +132,20 @@ Future<void> bootstrap() async {
       androidNotificationIcon: 'drawable/ic_stat_haraplay',
       // Stay in the foreground while paused: ColorOS hides a paused
       // notification from the lock screen otherwise. HaraAudioHandler
-      // stops the service after a while paused (pausedTimeout).
+      // detaches it after 2 min paused (swipeable from then on) and stops
+      // the service after 10 min (pausedTimeout).
       androidStopForegroundOnPause: false,
     ),
   );
   await handler.configureSession();
   handler.setReplayGainMode(loadReplayGainMode(preferences));
   await handler.setSpeed(loadPlaybackSpeed(preferences));
-  handler.setCrossfade(loadCrossfade(preferences));
+  handler
+    ..setCrossfade(loadCrossfade(preferences))
+    ..setStopOnTaskRemoved(loadStopOnTaskRemoved(preferences));
+  // From now on effect changes go through the player's guard: its volume
+  // dips around them, and it pauses briefly while an effect switches on.
+  final guardedEffects = GuardedAudioEffects(effects, handler.effectsGuard);
 
   final container = ProviderContainer(
     overrides: [
@@ -135,7 +157,7 @@ Future<void> bootstrap() async {
       artworkCacheProvider.overrideWithValue(artwork),
       playerProvider.overrideWithValue(handler),
       audioEffectsInfoProvider.overrideWithValue(effectsInfo),
-      audioEffectsSinkProvider.overrideWithValue(effects),
+      audioEffectsSinkProvider.overrideWithValue(guardedEffects),
       audioInfoSourceProvider.overrideWithValue(audioInfo),
       initialSystemTonesProvider.overrideWithValue(systemTones),
     ],

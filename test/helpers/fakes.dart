@@ -331,6 +331,11 @@ class FakePlayer implements Player {
     _emitQueue();
   }
 
+  bool stopOnTaskRemoved = false;
+
+  @override
+  void setStopOnTaskRemoved(bool stop) => stopOnTaskRemoved = stop;
+
   CrossfadeSettings crossfade = crossfadeOff;
 
   @override

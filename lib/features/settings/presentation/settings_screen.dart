@@ -14,6 +14,7 @@ import '../../backup/presentation/backup_settings.dart';
 import '../../equalizer/presentation/equalizer_controller.dart';
 import '../../equalizer/presentation/equalizer_screen.dart';
 import '../../player/presentation/crossfade_controller.dart';
+import '../../player/presentation/stop_on_task_removed.dart';
 import 'choice_sheet.dart';
 import 'color_choice_picker.dart';
 import 'library_settings.dart';
@@ -54,6 +55,7 @@ class SettingsScreen extends StatelessWidget {
           const _EqualizerTile(),
           const _ReplayGainTile(),
           const _CrossfadeTiles(),
+          const _StopOnTaskRemovedTile(),
           const SectionHeader(title: 'Library'),
           const LibrarySettings(),
           const SectionHeader(title: 'Your data'),
@@ -197,6 +199,27 @@ class _CrossfadeTiles extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _StopOnTaskRemovedTile extends ConsumerWidget {
+  const _StopOnTaskRemovedTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stop = ref.watch(stopOnTaskRemovedProvider);
+    final controller = ref.read(stopOnTaskRemovedProvider.notifier);
+    return MergeSemantics(
+      child: SettingsTile(
+        icon: HaraIcons.x,
+        title: 'Stop when removed from Recent apps',
+        subtitle: stop
+            ? 'Swiping HaraPlay away stops the music'
+            : 'Music keeps playing; a paused player always closes',
+        onTap: () => controller.set(!stop),
+        trailing: Switch(value: stop, onChanged: controller.set),
+      ),
     );
   }
 }

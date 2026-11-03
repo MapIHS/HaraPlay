@@ -38,6 +38,7 @@ class PlaybackForeground(
     ) {
         when (call.method) {
             "releaseForeground" -> result.success(releaseForeground())
+            "detachForeground" -> result.success(detachForeground())
             // Talks to the audio server, which can be slow right after
             // boot: off the main thread.
             "audioEffects" -> background.execute {
@@ -54,6 +55,34 @@ class PlaybackForeground(
     fun dispose() {
         channel.setMethodCallHandler(null)
         background.shutdown()
+    }
+
+    /**
+     * Takes the service out of the foreground but keeps its notification,
+     * which can then be swiped away (audio_service's delete intent stops
+     * playback). Resuming puts it back in the foreground (audio_service
+     * calls startForeground on every change to playing). Uses
+     * audio_service's own exitForegroundState (detach + release its wake
+     * lock); falls back to a plain detach.
+     */
+    private fun detachForeground(): Boolean = try {
+        val field = AudioService::class.java.getDeclaredField("instance")
+        field.isAccessible = true
+        val service = field.get(null) as? Service
+        if (service != null) {
+            try {
+                AudioService::class.java.getDeclaredMethod("exitForegroundState").run {
+                    isAccessible = true
+                    invoke(service)
+                }
+            } catch (e: ReflectiveOperationException) {
+                ServiceCompat.stopForeground(service, ServiceCompat.STOP_FOREGROUND_DETACH)
+            }
+        }
+        service != null
+    } catch (e: ReflectiveOperationException) {
+        Log.w("HaraPlay", "Could not detach the playback notification", e)
+        false
     }
 
     private fun releaseForeground(): Boolean = try {

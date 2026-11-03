@@ -10,6 +10,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/queue_state_dao.dart';
 import '../../audio_info/data/audio_info_repository.dart';
 import '../../audio_info/domain/audio_info.dart';
+import '../../equalizer/data/audio_effects.dart';
 import '../domain/crossfade_settings.dart';
 import '../domain/player.dart';
 import '../domain/queue_model.dart';
@@ -38,11 +39,14 @@ class HaraAudioHandler extends BaseAudioHandler
     this._queueStore,
     Random? random,
     this.pausedTimeout = const Duration(minutes: 10),
+    this.detachAfter = const Duration(minutes: 2),
     Future<void> Function()? releaseForeground,
+    Future<void> Function()? detachForeground,
     this._audioInfo,
     this._tailPlayer,
   }) : _random = random ?? Random(),
-       _releaseForeground = releaseForeground ?? (() async {}) {
+       _releaseForeground = releaseForeground ?? (() async {}),
+       _detachForeground = detachForeground ?? (() async {}) {
     _subscriptions.addAll([
       _player.playbackEventStream.listen(
         (_) => _broadcastState(),
@@ -75,6 +79,19 @@ class HaraAudioHandler extends BaseAudioHandler
   /// stops on its own; the queue is saved and resumes from the app.
   final Duration pausedTimeout;
   Timer? _pausedTimer;
+
+  /// After this long paused, the notification leaves the foreground (it
+  /// stays, but can be swiped away, which stops playback). Until then it
+  /// stays on ColorOS's lock screen, which hides non-foreground ones.
+  final Duration detachAfter;
+  Timer? _detachTimer;
+
+  /// Takes the service out of the foreground, keeping the notification.
+  final Future<void> Function() _detachForeground;
+
+  /// "Stop when removed from Recent apps" (off by default). While paused,
+  /// removing the app always stops.
+  bool _stopOnTaskRemoved = false;
 
   /// Removes the paused notification after the timed stop (the platform
   /// keeps it while the UI is bound to the service; see bootstrap).
@@ -115,6 +132,16 @@ class HaraAudioHandler extends BaseAudioHandler
     source: _audioInfo,
   );
   late final _sleep = SleepTimer(setVolume: _volume.setFade, pause: pause);
+
+  /// Dips the volume around audio-effect changes (see `GuardedAudioEffects`).
+  late final effectsGuard = EffectsChangeGuard(
+    isPlaying: () => _player.playing,
+    setDuck: _volume.setDuck,
+    pause: _player.pause,
+    // just_audio's play() completes only when playback stops again.
+    play: () async => unawaited(_player.play()),
+    beforeChange: () async => _crossfader?.cancel(),
+  );
 
   final _status = StreamController<PlaybackStatus>.broadcast();
   PlaybackStatus _lastStatus = PlaybackStatus.idle;
@@ -495,8 +522,18 @@ class HaraAudioHandler extends BaseAudioHandler
   @override
   Future<void> play() async {
     if (_songs.isEmpty) return;
+    // After a stop the player has let go of the song; pick it up where it
+    // was, not from the start.
+    final resume = _stoppedAt;
+    if (resume != null && _player.processingState == ProcessingState.idle) {
+      _stoppedAt = null;
+      await _player.seek(resume.position, index: resume.index);
+    }
     await _player.play();
   }
+
+  /// Where [stop] left off, for the next [play].
+  ({int index, Duration position})? _stoppedAt;
 
   @override
   Future<void> pause() async {
@@ -599,13 +636,39 @@ class HaraAudioHandler extends BaseAudioHandler
       });
 
   @override
+  /// Stops playback and the service and removes the notification (the
+  /// notification's ✕, swiping it away, the paused timeout). The queue and
+  /// position are saved; playback resumes from the app.
+  @override
   Future<void> stop() async {
+    _detachTimer?.cancel();
+    _detachTimer = null;
     await _crossfader?.cancel();
     await _savePosition();
+    final index = _player.currentIndex;
+    if (index != null) {
+      _stoppedAt = (index: index, position: _player.position);
+    }
     await _player.stop();
     await _recorder.flush();
     await super.stop();
+    // audio_service leaves a plain notification behind after a stop; let
+    // it finish its own last update, then remove it.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!_player.playing) await _releaseForeground();
   }
+
+  @override
+  Future<void> onNotificationDeleted() => stop();
+
+  /// HaraPlay was swiped away from Recent apps.
+  @override
+  Future<void> onTaskRemoved() async {
+    if (!_player.playing || _stopOnTaskRemoved) await stop();
+  }
+
+  @override
+  void setStopOnTaskRemoved(bool stop) => _stopOnTaskRemoved = stop;
 
   Future<void> dispose() async {
     _pausedTimer?.cancel();
@@ -710,17 +773,16 @@ class HaraAudioHandler extends BaseAudioHandler
     if (state.playing || state.processingState == ProcessingState.idle) {
       _pausedTimer?.cancel();
       _pausedTimer = null;
+      _detachTimer?.cancel();
+      _detachTimer = null;
     } else {
+      _detachTimer ??= Timer(detachAfter, () {
+        _detachTimer = null;
+        if (!_player.playing) unawaited(_detachForeground());
+      });
       _pausedTimer ??= Timer(pausedTimeout, () {
         _pausedTimer = null;
-        if (_player.playing) return;
-        unawaited(() async {
-          await stop();
-          // Let the platform finish its own stop (and any last notification
-          // update) before removing the notification.
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-          if (!_player.playing) await _releaseForeground();
-        }());
+        if (!_player.playing) unawaited(stop());
       });
     }
     if (state.processingState == ProcessingState.completed) {
@@ -778,6 +840,8 @@ class HaraAudioHandler extends BaseAudioHandler
           MediaControl.skipToPrevious,
           if (playing) MediaControl.pause else MediaControl.play,
           MediaControl.skipToNext,
+          // Closes playback and the notification (expanded view).
+          MediaControl.stop,
         ],
         systemActions: const {
           MediaAction.seek,

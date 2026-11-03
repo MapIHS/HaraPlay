@@ -30,6 +30,7 @@ const backupSettingTypes = <String, Type>{
   'playback.speed': double,
   'playback.crossfadeSeconds': int,
   'playback.crossfadeOnSkip': bool,
+  'playback.stopOnTaskRemoved': bool,
 };
 
 /// Makes and restores backup files: likes, playlists, the full play

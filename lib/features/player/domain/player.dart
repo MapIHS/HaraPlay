@@ -81,6 +81,10 @@ abstract interface class Player {
   /// player, gapless as before.
   void setCrossfade(CrossfadeSettings settings);
 
+  /// Whether removing HaraPlay from Recent apps stops playback while it
+  /// plays (it always stops while paused). Off by default.
+  void setStopOnTaskRemoved(bool stop);
+
   /// Playback speed, 0.5–2 (pitch is kept). See [PlaybackStatus.speed].
   Future<void> setSpeed(double speed);
 
