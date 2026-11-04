@@ -50,7 +50,7 @@ void main() {
     final cache = ArtworkCache(source, () async => temp);
 
     expect(await cache.load(request(1)), [1, 2, 3]);
-    expect(File('${temp.path}/artwork/1_192_1.jpg').existsSync(), isTrue);
+    expect(File('${temp.path}/covers/1_192_1.jpg').existsSync(), isTrue);
 
     // A new cache (next launch) reads from disk, not the channel.
     final again = ArtworkCache(source, () async => temp);
@@ -83,7 +83,7 @@ void main() {
 
     expect(await cache.load(request(2)), isNull);
     expect(await cache.load(request(2)), isNull);
-    expect(File('${temp.path}/artwork/2_192_1.none').existsSync(), isTrue);
+    expect(File('${temp.path}/covers/2_192_1.none').existsSync(), isTrue);
     expect(source.calls, [2]);
   });
 
@@ -111,7 +111,8 @@ void main() {
   test('sizes round up to a bucket', () {
     expect(ArtworkCache.bucketFor(48 * 2.625), 192);
     expect(ArtworkCache.bucketFor(96), 96);
-    expect(ArtworkCache.bucketFor(5000), 768);
+    expect(ArtworkCache.bucketFor(1000), 1024);
+    expect(ArtworkCache.bucketFor(5000), 1536);
   });
 
   test('prune removes covers of deleted and changed songs only', () async {
@@ -123,13 +124,13 @@ void main() {
     await cache.load(request(1));
     await cache.load(request(2));
     await cache.load(request(3)); // no artwork: a .none marker
-    File('${temp.path}/artwork/notes.txt').writeAsStringSync('keep');
+    File('${temp.path}/covers/notes.txt').writeAsStringSync('keep');
 
     // Song 2's file changed (version 5); song 3 was deleted.
     final removed = await cache.prune({1: 1, 2: 5});
     expect(removed, 2);
     final left = [
-      for (final f in Directory('${temp.path}/artwork').listSync())
+      for (final f in Directory('${temp.path}/covers').listSync())
         f.uri.pathSegments.last,
     ]..sort();
     expect(left, ['1_192_1.jpg', 'notes.txt']);
@@ -138,5 +139,15 @@ void main() {
     source.calls.clear();
     await cache.load(request(3));
     expect(source.calls, [3]);
+  });
+
+  test('the 0.1.1 cache (small thumbnails) is dropped', () async {
+    final old = Directory('${temp.path}/artwork')..createSync();
+    File('${old.path}/1_192_1.jpg').writeAsBytesSync([0]);
+    final source = _CountingSource({
+      1: Uint8List.fromList([5]),
+    });
+    expect(await ArtworkCache(source, () async => temp).load(request(1)), [5]);
+    expect(old.existsSync(), isFalse);
   });
 }

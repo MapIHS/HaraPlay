@@ -142,6 +142,27 @@ void main() {
     expect(received!.arguments, {'songId': 5, 'albumId': 9, 'sizePx': 256});
   });
 
+  test('scaleArtwork sends the image and size', () async {
+    MethodCall? received;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          received = call;
+          return Uint8List.fromList([7]);
+        });
+
+    final bytes = await MediaStoreChannel().scaleArtwork(
+      Uint8List.fromList([4, 5]),
+      768,
+    );
+
+    expect(bytes, [7]);
+    expect(received!.method, 'scaleArtwork');
+    expect(received!.arguments, {
+      'image': [4, 5],
+      'sizePx': 768,
+    });
+  });
+
   test('column decoding matches the per-song parser', () {
     final rows = <Map<String, Object?>>[
       {

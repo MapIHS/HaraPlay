@@ -72,6 +72,15 @@ class MediaStorePlugin(private val context: Context, messenger: BinaryMessenger)
                 val albumId = call.argument<Number>("albumId")?.toLong()
                 run(artworkExecutor, result) { artwork.load(songId, albumId, sizePx) }
             }
+            "scaleArtwork" -> {
+                val image = call.argument<ByteArray>("image")
+                val sizePx = call.argument<Number>("sizePx")?.toInt()
+                if (image == null || sizePx == null || sizePx <= 0) {
+                    result.error("bad_args", "image and a positive sizePx are required", null)
+                    return
+                }
+                run(artworkExecutor, result) { artwork.scale(image, sizePx) }
+            }
             else -> result.notImplemented()
         }
     }

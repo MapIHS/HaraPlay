@@ -73,6 +73,14 @@ class MediaStoreChannel implements MediaSource {
     'albumId': albumId,
     'sizePx': sizePx,
   });
+
+  /// [image] (any format Android decodes) cropped to its centre square and
+  /// scaled down to at most [sizePx], as JPEG; null if it isn't an image.
+  Future<Uint8List?> scaleArtwork(Uint8List image, int sizePx) =>
+      _channel.invokeMethod<Uint8List>('scaleArtwork', {
+        'image': image,
+        'sizePx': sizePx,
+      });
 }
 
 /// Inverts the channel's genre → song IDs map.

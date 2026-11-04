@@ -12,10 +12,18 @@ import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 
-/** Loads cover art as JPEG bytes, scaled to fit a square of `sizePx`. */
+/**
+ * Cover art as JPEG bytes. Artwork is always shown as a square filled
+ * edge to edge, so images are cropped to the centre square and scaled
+ * down (never up) to `sizePx`.
+ */
 class ArtworkLoader(private val resolver: ContentResolver) {
 
-    /** Returns null when the song has no artwork. Blocks; call off the main thread. */
+    /**
+     * MediaStore's artwork for a song, or null when it has none. Blocks;
+     * call off the main thread. On Android 7-9 this is the album's art,
+     * which the system often keeps only as a small thumbnail.
+     */
     fun load(songId: Long, albumId: Long?, sizePx: Int): ByteArray? {
         val bitmap = try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -25,29 +33,42 @@ class ArtworkLoader(private val resolver: ContentResolver) {
                 )
                 resolver.loadThumbnail(uri, Size(sizePx, sizePx), null)
             } else {
-                albumId?.let { loadLegacyAlbumArt(it, sizePx) }
+                albumId?.let { id ->
+                    val uri = ContentUris.withAppendedId(LEGACY_ALBUM_ART_URI, id)
+                    decodeSquare(sizePx) { resolver.openInputStream(uri)?.use(it) }
+                }
             }
         } catch (e: FileNotFoundException) {
             null
         } catch (e: IOException) {
             null
         } ?: return null
-
-        return try {
-            ByteArrayOutputStream().use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
-                out.toByteArray()
-            }
-        } finally {
-            bitmap.recycle()
-        }
+        return encode(bitmap)
     }
 
-    /** API 24-28: the album-art provider, decoded with subsampling. */
-    private fun loadLegacyAlbumArt(albumId: Long, sizePx: Int): Bitmap? {
-        val uri = ContentUris.withAppendedId(LEGACY_ALBUM_ART_URI, albumId)
+    /**
+     * An image read by the app itself (a picture embedded in the file, or
+     * cover.jpg next to it), as a square JPEG of at most `sizePx`. Null if
+     * the bytes aren't an image Android can decode.
+     */
+    fun scale(image: ByteArray, sizePx: Int): ByteArray? {
+        val bitmap = decodeSquare(sizePx) { decode ->
+            decode(image.inputStream())
+        } ?: return null
+        return encode(bitmap)
+    }
+
+    /**
+     * Decodes the stream that [open] hands to its callback, subsampled to
+     * no less than [sizePx] on the short side, then cropped to the centre
+     * square and scaled down to [sizePx].
+     */
+    private fun decodeSquare(
+        sizePx: Int,
+        open: ((java.io.InputStream) -> Bitmap?) -> Bitmap?,
+    ): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        open { BitmapFactory.decodeStream(it, null, bounds); null }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
         var sample = 1
@@ -55,24 +76,39 @@ class ArtworkLoader(private val resolver: ContentResolver) {
             sample *= 2
         }
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
-        val decoded = resolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, options)
-        } ?: return null
+        val decoded = open { BitmapFactory.decodeStream(it, null, options) } ?: return null
 
-        val scale = sizePx.toFloat() / maxOf(decoded.width, decoded.height)
-        if (scale >= 1f) return decoded
-        val scaled = Bitmap.createScaledBitmap(
-            decoded,
-            (decoded.width * scale).toInt().coerceAtLeast(1),
-            (decoded.height * scale).toInt().coerceAtLeast(1),
-            true,
-        )
-        if (scaled !== decoded) decoded.recycle()
+        val side = minOf(decoded.width, decoded.height)
+        val target = minOf(side, sizePx)
+        val square = if (decoded.width == decoded.height) {
+            decoded
+        } else {
+            Bitmap.createBitmap(
+                decoded,
+                (decoded.width - side) / 2,
+                (decoded.height - side) / 2,
+                side,
+                side,
+            )
+        }
+        if (square !== decoded) decoded.recycle()
+        if (target == side) return square
+        val scaled = Bitmap.createScaledBitmap(square, target, target, true)
+        if (scaled !== square) square.recycle()
         return scaled
     }
 
+    private fun encode(bitmap: Bitmap): ByteArray = try {
+        ByteArrayOutputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+            out.toByteArray()
+        }
+    } finally {
+        bitmap.recycle()
+    }
+
     private companion object {
-        const val JPEG_QUALITY = 90
+        const val JPEG_QUALITY = 92
         val LEGACY_ALBUM_ART_URI: Uri = Uri.parse("content://media/external/audio/albumart")
     }
 }

@@ -63,8 +63,9 @@ class HaraAudioHandler extends BaseAudioHandler
     ]);
   }
 
-  /// Notification artwork size in pixels.
-  static const _artSize = 384;
+  /// Notification artwork size in pixels; Android 7-10 also fill the lock
+  /// screen with it.
+  static const _artSize = 768;
 
   /// "Previous" restarts the song when it has played longer than this.
   static const _restartThreshold = Duration(seconds: 3);

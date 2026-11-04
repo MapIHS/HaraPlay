@@ -64,6 +64,15 @@ android {
             // Without key.properties the release APK stays unsigned (it
             // won't install) instead of silently being debug-signed.
             signingConfig = signingConfigs.findByName("release")
+            // HARAPLAY_DEV_RELEASE=true: a release-mode build of HaraPlay
+            // Dev (debug key), to measure release performance without
+            // replacing the release app.
+            if (System.getenv("HARAPLAY_DEV_RELEASE") == "true") {
+                applicationIdSuffix = ".debug"
+                versionNameSuffix = "-dev-release"
+                manifestPlaceholders["appName"] = "HaraPlay Dev"
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 }

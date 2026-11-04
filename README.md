@@ -7,7 +7,7 @@ no internet permission at all: nothing leaves your device.
 Built with Flutter, with a bold neo-brutalist look (thick outlines, hard
 shadows, a saffron accent) in light and dark.
 
-> **Status:** early release (0.1.1). Found a bug or missing something? Please
+> **Status:** early release (0.1.2). Found a bug or missing something? Please
 > open an [issue](https://github.com/MapIHS/HaraPlay/issues).
 
 <p>
@@ -154,8 +154,12 @@ uninstalling the other one first.
 - `tool/make_launcher_icons.sh` (and `… dev` for HaraPlay Dev) renders the
   launcher icons from `tool/icon/` (needs ImageMagick with librsvg).
 - `tool/make_test_audio.sh` and the other `tool/make_*_audio.sh` scripts
-  generate test tones (needs ffmpeg) for gapless, ReplayGain, lyrics and
-  large-library checks on an emulator.
+  generate test tones (needs ffmpeg) for gapless, ReplayGain, lyrics,
+  cover art and large-library checks on an emulator.
+- Startup timing: `HARAPLAY_DEV_RELEASE=true flutter build apk --release
+  --dart-define=HARAPLAY_STARTUP_TRACE=true` builds a release-mode
+  HaraPlay Dev (debug key, installs next to the release app) that logs
+  each startup step to logcat ("HaraPlay startup:").
 
 ## Clean-room note
 

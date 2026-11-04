@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Start-up screen before Flutter draws (Android 7-11): the page colour
-     with the launcher icon in the middle. -->
+     with the app icon in the middle, built from the adaptive icon's layers.
+     (A <bitmap> can't point at the adaptive @mipmap/ic_launcher: on
+     Android 8+ the system then fails to create the window, and nothing
+     shows until Flutter's first frame.) -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/launch_background" />
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/ic_launcher" />
+    <item
+        android:width="96dp"
+        android:height="96dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="@color/ic_launcher_background" />
+        </shape>
     </item>
+    <!-- The 108 dp foreground layer, scaled so its 72 dp safe zone fills
+         the 96 dp circle. -->
+    <item
+        android:width="144dp"
+        android:height="144dp"
+        android:drawable="@mipmap/ic_launcher_foreground"
+        android:gravity="center" />
 </layer-list>
