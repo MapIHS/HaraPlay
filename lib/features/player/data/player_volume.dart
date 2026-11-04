@@ -32,12 +32,8 @@ class PlayerVolume {
   /// The crossfade's ramp on the main player (1 = none).
   double _ramp = 1;
 
-  /// The dip around an audio-effect change (1 = none; see
-  /// `EffectsChangeGuard`).
-  double _duck = 1;
-
   /// The volume sent to the player.
-  double get volume => _fade * _gain * _ramp * _duck;
+  double get volume => _fade * _gain * _ramp;
 
   /// The volume without the crossfade ramp: what the outgoing song's tail
   /// plays at on the crossfade's second player.
@@ -53,12 +49,6 @@ class PlayerVolume {
   /// From the sleep timer (1 = no fade).
   Future<void> setFade(double fade) {
     _fade = fade.clamp(0.0, 1.0);
-    return _apply();
-  }
-
-  /// From the effects guard: 0–1, never above full.
-  Future<void> setDuck(double duck) {
-    _duck = duck.clamp(0.0, 1.0);
     return _apply();
   }
 

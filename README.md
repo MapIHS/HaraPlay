@@ -43,7 +43,7 @@ shadows, a saffron accent) in light and dark.
 - Optional crossfade (2–12 s); tracks of the same album played in order stay
   gapless.
 - Sleep timer with a gentle fade-out, playback speed (0.5–2×, pitch kept).
-- Equalizer with presets and a loudness boost, ReplayGain (track or album).
+- ReplayGain (track or album).
 - Swipe the artwork to change songs, double-tap its sides to skip 10 s.
 
 **Your music, your way**
@@ -91,9 +91,10 @@ There is **no `INTERNET` permission**: HaraPlay can't connect to anything.
 - Gapless playback of **AAC / M4A** albums has a tiny 5–11 ms dip at each
   track change (the encoder's padding, handled inside ExoPlayer). FLAC and
   MP3 albums are fully gapless.
-- With the **equalizer** on, some devices' sound effects even out the
-  volume and can make a **crossfade** sound shorter and steeper.
-  "Crossfade when skipping" starts about 0.2–0.3 s after the tap.
+- The **equalizer** and loudness boost are temporarily disabled: on some
+  devices they caused sudden volume bursts. Settings saved by 0.1.0 or in
+  a backup are kept and will apply again once it's back.
+- "Crossfade when skipping" starts about 0.2–0.3 s after the tap.
 - **Lyrics** are read from a `.lrc` file next to the song (same name) or
   from lyrics embedded in the file; there is no lyrics folder setting, and
   synced lyrics embedded as ID3 SYLT frames aren't supported.

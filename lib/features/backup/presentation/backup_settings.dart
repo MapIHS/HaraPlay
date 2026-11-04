@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/features.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_colors.dart';
 import '../../../core/theme/hara_tokens.dart';
@@ -126,16 +127,16 @@ class BackupSettings extends ConsumerWidget {
       );
 }
 
-class _ConfirmRestore extends StatefulWidget {
+class _ConfirmRestore extends ConsumerStatefulWidget {
   const _ConfirmRestore({required this.backup});
 
   final Backup backup;
 
   @override
-  State<_ConfirmRestore> createState() => _ConfirmRestoreState();
+  ConsumerState<_ConfirmRestore> createState() => _ConfirmRestoreState();
 }
 
-class _ConfirmRestoreState extends State<_ConfirmRestore> {
+class _ConfirmRestoreState extends ConsumerState<_ConfirmRestore> {
   late bool _settings = widget.backup.settings.isNotEmpty;
 
   @override
@@ -165,7 +166,11 @@ class _ConfirmRestoreState extends State<_ConfirmRestore> {
               value: _settings,
               onChanged: (v) => setState(() => _settings = v ?? false),
               title: const Text('Also restore settings'),
-              subtitle: const Text('Colours, equalizer, playback, library'),
+              subtitle: Text(
+                ref.read(equalizerEnabledProvider)
+                    ? 'Colours, equalizer, playback, library'
+                    : 'Colours, playback, library',
+              ),
             ),
         ],
       ),
@@ -235,11 +240,14 @@ Future<void> reloadSettings(WidgetRef ref) async {
     ..setCrossfade(ref.read(crossfadeProvider))
     ..setStopOnTaskRemoved(ref.read(stopOnTaskRemovedProvider));
   await player.setSpeed(ref.read(playbackSpeedProvider));
-  await applyEqualizerSettings(
-    ref.read(equalizerProvider),
-    ref.read(audioEffectsInfoProvider),
-    ref.read(audioEffectsSinkProvider),
-  );
+  // While the equalizer is disabled its restored settings are only kept.
+  if (ref.read(equalizerEnabledProvider)) {
+    await applyEqualizerSettings(
+      ref.read(equalizerProvider),
+      ref.read(audioEffectsInfoProvider),
+      ref.read(audioEffectsSinkProvider),
+    );
+  }
   await ref
       .read(libraryDaoProvider)
       .applyExclusions(ref.read(excludedFoldersProvider));

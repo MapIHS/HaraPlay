@@ -22,20 +22,16 @@ EqualizerSettings loadEqualizerSettings(SharedPreferencesWithCache prefs) =>
     EqualizerSettings.decode(prefs.getString(_prefsKey));
 
 /// Sends [settings] to [sink] for the device described by [info].
-/// [smooth]: a discrete change (switch, preset, loudness), during which
-/// the player's volume dips; false while a band is being dragged.
 Future<void> applyEqualizerSettings(
   EqualizerSettings settings,
   AudioEffectsInfo info,
-  AudioEffectsSink sink, {
-  bool smooth = true,
-}) {
+  AudioEffectsSink sink,
+) {
   final layout = info.equalizer;
   return sink.apply(
     equalizerEnabled: settings.enabled && layout != null,
     gains: layout == null ? const [] : settings.gainsFor(layout),
     loudnessDb: info.loudness ? settings.loudnessDb : 0,
-    smooth: smooth,
   );
 }
 
@@ -56,7 +52,6 @@ class EqualizerController extends Notifier<EqualizerSettings> {
     if (layout == null || index < 0 || index >= layout.bands.length) return;
     final gains = state.gainsFor(layout)..[index] = layout.clamp(gain);
     _update(
-      smooth: false,
       state.copyWith(
         presetId: customPresetId,
         enabled: true,
@@ -81,14 +76,13 @@ class EqualizerController extends Notifier<EqualizerSettings> {
   /// Flat bands and no loudness boost; the custom curve is kept.
   void reset() => _update(state.copyWith(presetId: 'flat', loudnessDb: 0));
 
-  void _update(EqualizerSettings settings, {bool smooth = true}) {
+  void _update(EqualizerSettings settings) {
     state = settings;
     ref.read(sharedPreferencesProvider).setString(_prefsKey, settings.encode());
     applyEqualizerSettings(
       settings,
       ref.read(audioEffectsInfoProvider),
       ref.read(audioEffectsSinkProvider),
-      smooth: smooth,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/features.dart';
 import '../../../app/router.dart';
 import '../../../core/icons/hara_icons.dart';
 import '../../../core/theme/hara_tokens.dart';
@@ -102,15 +103,19 @@ class _EqualizerTile extends ConsumerWidget {
   const _EqualizerTile();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => SettingsTile(
-    icon: HaraIcons.slidersHorizontal,
-    title: 'Equalizer',
-    subtitle: equalizerSummary(
-      ref.watch(equalizerProvider),
-      ref.watch(audioEffectsInfoProvider),
-    ),
-    onTap: () => context.push(AppRoutes.equalizer),
-  );
+  Widget build(BuildContext context, WidgetRef ref) =>
+      // Hidden while the equalizer is disabled (kEqualizerEnabled).
+      !ref.watch(equalizerEnabledProvider)
+      ? const SizedBox.shrink()
+      : SettingsTile(
+          icon: HaraIcons.slidersHorizontal,
+          title: 'Equalizer',
+          subtitle: equalizerSummary(
+            ref.watch(equalizerProvider),
+            ref.watch(audioEffectsInfoProvider),
+          ),
+          onTap: () => context.push(AppRoutes.equalizer),
+        );
 }
 
 class _ReplayGainTile extends ConsumerWidget {

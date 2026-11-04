@@ -143,22 +143,17 @@ class _EqualizerCard extends ConsumerWidget {
               left: HaraSpacing.lg,
               right: HaraSpacing.sm,
             ),
-            // The whole row toggles, not just the switch.
             child: MergeSemantics(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(HaraRadius.md),
-                onTap: () => controller.setEnabled(!settings.enabled),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text('Equalizer', style: textTheme.titleLarge),
-                    ),
-                    Switch(
-                      value: settings.enabled,
-                      onChanged: controller.setEnabled,
-                    ),
-                  ],
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('Equalizer', style: textTheme.titleLarge),
+                  ),
+                  Switch(
+                    value: settings.enabled,
+                    onChanged: controller.setEnabled,
+                  ),
+                ],
               ),
             ),
           ),

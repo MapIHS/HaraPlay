@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/app/app.dart';
+import 'package:haraplay/app/features.dart';
 import 'package:haraplay/core/artwork/artwork_cache.dart';
 import 'package:haraplay/core/database/app_database.dart';
 import 'package:haraplay/core/platform/document_files.dart';
@@ -79,6 +80,7 @@ Future<void> pumpHaraApp(
   FakeLyricsLoader? lyrics,
   AudioEffectsInfo effectsInfo = AudioEffectsInfo.none,
   AudioEffectsSink effectsSink = const NoAudioEffects(),
+  bool equalizerEnabled = false,
   FakeAudioInfo? audioInfo,
   bool waveMotion = false,
   SystemTones? systemTones,
@@ -107,6 +109,7 @@ Future<void> pumpHaraApp(
         lyricsLoaderProvider.overrideWithValue(lyrics ?? FakeLyricsLoader()),
         audioEffectsInfoProvider.overrideWithValue(effectsInfo),
         audioEffectsSinkProvider.overrideWithValue(effectsSink),
+        equalizerEnabledProvider.overrideWithValue(equalizerEnabled),
         audioInfoSourceProvider.overrideWithValue(audioInfo ?? FakeAudioInfo()),
         // The wave's endless motion would keep pumpAndSettle from ending.
         seekWaveMotionProvider.overrideWithValue(waveMotion),

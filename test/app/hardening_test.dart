@@ -245,6 +245,8 @@ void main() {
         tester,
         database: await library(),
         player: player,
+        // Lays out the disabled equalizer screen too.
+        equalizerEnabled: true,
         effectsInfo: const AudioEffectsInfo(
           equalizer: EqualizerLayout(
             minDecibels: -15,

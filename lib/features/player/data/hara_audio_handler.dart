@@ -10,7 +10,6 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/queue_state_dao.dart';
 import '../../audio_info/data/audio_info_repository.dart';
 import '../../audio_info/domain/audio_info.dart';
-import '../../equalizer/data/audio_effects.dart';
 import '../domain/crossfade_settings.dart';
 import '../domain/player.dart';
 import '../domain/queue_model.dart';
@@ -132,16 +131,6 @@ class HaraAudioHandler extends BaseAudioHandler
     source: _audioInfo,
   );
   late final _sleep = SleepTimer(setVolume: _volume.setFade, pause: pause);
-
-  /// Dips the volume around audio-effect changes (see `GuardedAudioEffects`).
-  late final effectsGuard = EffectsChangeGuard(
-    isPlaying: () => _player.playing,
-    setDuck: _volume.setDuck,
-    pause: _player.pause,
-    // just_audio's play() completes only when playback stops again.
-    play: () async => unawaited(_player.play()),
-    beforeChange: () async => _crossfader?.cancel(),
-  );
 
   final _status = StreamController<PlaybackStatus>.broadcast();
   PlaybackStatus _lastStatus = PlaybackStatus.idle;
@@ -635,7 +624,6 @@ class HaraAudioHandler extends BaseAudioHandler
         AudioServiceRepeatMode.group => RepeatSetting.all,
       });
 
-  @override
   /// Stops playback and the service and removes the notification (the
   /// notification's ✕, swiping it away, the paused timeout). The queue and
   /// position are saved; playback resumes from the app.

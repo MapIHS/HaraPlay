@@ -23,6 +23,7 @@ import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/excluded_folders_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
+import 'features.dart';
 import 'shell/app_shell.dart';
 import 'shell/branch_container.dart';
 
@@ -109,6 +110,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   final router = createRouter(
     refreshListenable: refresh,
+    equalizer: ref.read(equalizerEnabledProvider),
     redirect: (context, state) => onboardingRedirect(
       access: ref.read(mediaAccessProvider),
       completed: ref.read(onboardingCompletedProvider),
@@ -139,6 +141,7 @@ GoRouter createRouter({
   String initialLocation = AppRoutes.home,
   GoRouterRedirect? redirect,
   Listenable? refreshListenable,
+  bool equalizer = kEqualizerEnabled,
 }) {
   final rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -214,11 +217,12 @@ GoRouter createRouter({
         ],
       ),
       // Full-screen routes above the shell (no bottom nav).
-      GoRoute(
-        path: AppRoutes.equalizer,
-        parentNavigatorKey: rootKey,
-        builder: (context, state) => const EqualizerScreen(),
-      ),
+      if (equalizer)
+        GoRoute(
+          path: AppRoutes.equalizer,
+          parentNavigatorKey: rootKey,
+          builder: (context, state) => const EqualizerScreen(),
+        ),
       GoRoute(
         path: AppRoutes.excludedFolders,
         parentNavigatorKey: rootKey,

@@ -9,9 +9,6 @@ import '../../helpers/test_app.dart';
 class RecordingEffects implements AudioEffectsSink {
   final applied = <(bool, List<double>, double)>[];
 
-  /// Whether each change asked for the volume dip (discrete changes).
-  final smooth = <bool>[];
-
   (bool, List<double>, double) get last => applied.last;
 
   @override
@@ -19,17 +16,7 @@ class RecordingEffects implements AudioEffectsSink {
     required bool equalizerEnabled,
     required List<double> gains,
     required double loudnessDb,
-    bool smooth = true,
-  }) async {
-    applied.add((equalizerEnabled, gains, loudnessDb));
-    this.smooth.add(smooth);
-  }
-
-  @override
-  bool switchesOn({
-    required bool equalizerEnabled,
-    required double loudnessDb,
-  }) => false;
+  }) async => applied.add((equalizerEnabled, gains, loudnessDb));
 }
 
 void main() {
@@ -57,6 +44,8 @@ void main() {
       effectsInfo: info,
       effectsSink: effects,
       prefs: prefs,
+      // The equalizer is disabled in the app (kEqualizerEnabled).
+      equalizerEnabled: true,
     );
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
@@ -106,10 +95,6 @@ void main() {
     expect(gains[0], 4);
     expect(gains[4], 4);
     expect(find.text('Custom'), findsOneWidget);
-    // The preset was a discrete change (the volume dips around it); a
-    // band being dragged is not, so it can be heard while moving.
-    expect(effects.smooth.first, isTrue);
-    expect(effects.smooth.last, isFalse);
   });
 
   testWidgets('loudness boost, reset, and settings are kept', (tester) async {

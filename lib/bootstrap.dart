@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app/app.dart';
@@ -17,7 +14,6 @@ import 'core/storage/preferences.dart';
 import 'core/theme/system_tones.dart';
 import 'features/audio_info/data/audio_info_repository.dart';
 import 'features/audio_info/presentation/replay_gain_controller.dart';
-import 'features/equalizer/data/audio_effects.dart';
 import 'features/equalizer/presentation/equalizer_controller.dart';
 import 'features/library/data/auto_rescan.dart';
 import 'features/library/presentation/library_providers.dart';
@@ -28,6 +24,7 @@ import 'features/open_with/data/open_with.dart';
 import 'features/player/data/hara_audio_handler.dart';
 import 'features/player/data/just_audio_tail_player.dart';
 import 'features/player/data/play_event_recorder.dart';
+import 'features/player/data/player_audio.dart';
 import 'features/player/presentation/crossfade_controller.dart';
 import 'features/player/presentation/playback_speed.dart';
 import 'features/player/presentation/player_providers.dart';
@@ -55,44 +52,20 @@ Future<void> bootstrap() async {
   // Header details and ReplayGain, for the player and the UI.
   final audioInfo = AudioInfoRepository(database.audioInfoDao);
 
-  // Only effects the device has: just_audio creating a missing one would
-  // break playback.
-  final effectsInfo = await probeAudioEffects();
-  final equalizer = effectsInfo.equalizer == null ? null : AndroidEqualizer();
-  final loudness = effectsInfo.loudness ? AndroidLoudnessEnhancer() : null;
-  // The crossfade's tail player gets its own copies of the effects
-  // (an effect belongs to one player's audio session); the group keeps
-  // their settings in step.
-  final effects = AudioEffectsGroup([
-    JustAudioEffects.of(equalizer: equalizer, loudness: loudness),
-  ]);
-  await applyEqualizerSettings(
-    loadEqualizerSettings(preferences),
-    effectsInfo,
-    effects,
-  );
+  // Audio effects: none while the equalizer is disabled
+  // (kEqualizerEnabled); then the players are plain just_audio players.
+  final audio = await setUpPlayerAudio(preferences);
 
   final handler = await AudioService.init(
     builder: () => HaraAudioHandler(
       // Unplayable queue entries are skipped by HaraAudioHandler itself.
-      player: AudioPlayer(
-        audioPipeline: AudioPipeline(
-          androidAudioEffects: [?equalizer, ?loudness],
-        ),
-      ),
+      player: audio.mainPlayer(),
       recorder: PlayEventRecorder(database.playEventsDao),
       artwork: artwork,
       queueStore: database.queueStateDao,
       audioInfo: audioInfo,
       // Only made once crossfade is first used.
-      tailPlayer: () {
-        final eq = effectsInfo.equalizer == null ? null : AndroidEqualizer();
-        final boost = effectsInfo.loudness ? AndroidLoudnessEnhancer() : null;
-        unawaited(
-          effects.add(JustAudioEffects.of(equalizer: eq, loudness: boost)),
-        );
-        return JustAudioTailPlayer(effects: [?eq, ?boost]);
-      },
+      tailPlayer: () => JustAudioTailPlayer(effects: audio.tailEffects()),
       // Overridable for device checks:
       // --dart-define=HARAPLAY_PAUSED_TIMEOUT_S=30
       // --dart-define=HARAPLAY_DETACH_AFTER_S=10
@@ -143,9 +116,6 @@ Future<void> bootstrap() async {
   handler
     ..setCrossfade(loadCrossfade(preferences))
     ..setStopOnTaskRemoved(loadStopOnTaskRemoved(preferences));
-  // From now on effect changes go through the player's guard: its volume
-  // dips around them, and it pauses briefly while an effect switches on.
-  final guardedEffects = GuardedAudioEffects(effects, handler.effectsGuard);
 
   final container = ProviderContainer(
     overrides: [
@@ -156,8 +126,8 @@ Future<void> bootstrap() async {
       appDatabaseProvider.overrideWithValue(database),
       artworkCacheProvider.overrideWithValue(artwork),
       playerProvider.overrideWithValue(handler),
-      audioEffectsInfoProvider.overrideWithValue(effectsInfo),
-      audioEffectsSinkProvider.overrideWithValue(guardedEffects),
+      audioEffectsInfoProvider.overrideWithValue(audio.info),
+      audioEffectsSinkProvider.overrideWithValue(audio.sink),
       audioInfoSourceProvider.overrideWithValue(audioInfo),
       initialSystemTonesProvider.overrideWithValue(systemTones),
     ],
