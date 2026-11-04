@@ -3,10 +3,9 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
-import 'package:audio_metadata_reader/audio_metadata_reader.dart';
-
 import '../database/app_database.dart';
 import '../platform/media_store_channel.dart';
+import 'embedded_pictures.dart';
 
 /// Cover art read by the app itself, for when MediaStore has none (or only
 /// a small thumbnail): the picture embedded in the song's file, then an
@@ -46,8 +45,20 @@ class LibraryArtworkFiles implements ArtworkFiles {
           .getSingleOrNull();
 
   @override
-  Future<Uint8List?> embeddedPicture(String path) =>
-      _slots.run(() => Isolate.run(() => readEmbeddedPicture(path)));
+  Future<Uint8List?> embeddedPicture(String path) => _slots.run(() async {
+    // A FileSystemException ("can't read the file right now") is passed
+    // back as text and thrown here again, so it's never taken for "no
+    // cover".
+    final (bytes, error) = await Isolate.run(() {
+      try {
+        return (readEmbeddedPicture(path), null);
+      } on FileSystemException catch (e) {
+        return (null, e.message);
+      }
+    });
+    if (error != null) throw FileSystemException(error, path);
+    return bytes;
+  });
 
   @override
   Future<Uint8List?> folderImage(String path) => _slots.run(() async {
@@ -66,34 +77,28 @@ class LibraryArtworkFiles implements ArtworkFiles {
       _channel.scaleArtwork(image, sizePx);
 }
 
-/// The embedded picture of [path]: the front cover, else the first one.
-/// Null when there is none or the file can't be read.
-Uint8List? readEmbeddedPicture(String path) {
-  try {
-    final pictures = readMetadata(File(path), getImage: true).pictures;
-    if (pictures.isEmpty) return null;
-    return pictures
-        .firstWhere(
-          (p) => p.pictureType == PictureType.coverFront,
-          orElse: () => pictures.first,
-        )
-        .bytes;
-  } on Object {
-    // Unsupported format, truncated file or no read access.
-    return null;
-  }
-}
-
-/// The folder image to use among a folder's file [names]: cover, then
-/// folder, then front; .jpg, .jpeg or .png; any letter case.
+/// The folder image to use among a folder's file [names] (any letter
+/// case): cover, folder, front, album, albumart, then the AlbumArt_…_Large
+/// and AlbumArtSmall files Windows Media Player leaves behind; as JPEG,
+/// PNG, WebP or BMP.
 String? pickFolderImage(List<String> names) {
-  const stems = ['cover', 'folder', 'front'];
-  const extensions = ['jpg', 'jpeg', 'png'];
+  const extensions = ['jpg', 'jpeg', 'png', 'webp', 'bmp'];
+  final images = <String, String>{
+    for (final name in names)
+      if (extensions.any((ext) => name.toLowerCase().endsWith('.$ext')))
+        name.toLowerCase().substring(0, name.lastIndexOf('.')): name,
+  };
+  const stems = ['cover', 'folder', 'front', 'album', 'albumart'];
   for (final stem in stems) {
     for (final ext in extensions) {
       for (final name in names) {
         if (name.toLowerCase() == '$stem.$ext') return name;
       }
+    }
+  }
+  for (final suffix in ['_large', 'small']) {
+    for (final MapEntry(key: stem, value: name) in images.entries) {
+      if (stem.startsWith('albumart') && stem.endsWith(suffix)) return name;
     }
   }
   return null;

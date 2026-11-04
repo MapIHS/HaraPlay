@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import android.util.Size
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
@@ -41,7 +42,13 @@ class ArtworkLoader(private val resolver: ContentResolver) {
         } catch (e: FileNotFoundException) {
             null
         } catch (e: IOException) {
+            Log.w(TAG, "MediaStore artwork of song $songId (album $albumId): $e")
             null
+        } catch (e: RuntimeException) {
+            // E.g. Android 9 for some albums without art. Logged, then
+            // reported to Dart, which still tries the file's own picture.
+            Log.w(TAG, "MediaStore artwork of song $songId (album $albumId) failed", e)
+            throw e
         } ?: return null
         return encode(bitmap)
     }
@@ -108,6 +115,7 @@ class ArtworkLoader(private val resolver: ContentResolver) {
     }
 
     private companion object {
+        const val TAG = "HaraPlayArtwork"
         const val JPEG_QUALITY = 92
         val LEGACY_ALBUM_ART_URI: Uri = Uri.parse("content://media/external/audio/albumart")
     }

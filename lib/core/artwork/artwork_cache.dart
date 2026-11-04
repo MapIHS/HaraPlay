@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -53,7 +54,9 @@ class ArtworkCache {
     this._source,
     Future<Directory> Function() directory, {
     this._files,
-  }) : _directory = directory;
+    DateTime Function()? now,
+  }) : _directory = directory,
+       _now = now ?? DateTime.now;
 
   /// Image sizes in physical pixels; requests round up to one of these
   /// so list rows, grids and headers share cache entries. The largest
@@ -150,25 +153,41 @@ class ArtworkCache {
     final dir = await _dir;
     final file = File('${dir.path}/$key.jpg');
     final none = File('${dir.path}/$key.none');
-    if (await file.exists()) return file.readAsBytes();
+    if (await file.exists()) {
+      _trace(request, 'cached image');
+      return file.readAsBytes();
+    }
     if (await none.exists()) {
-      _missing.add(key);
-      return null;
-    }
-
-    final Uint8List? bytes;
-    try {
-      bytes = await _fetch(request);
-    } on PlatformException {
-      // e.g. access revoked: don't remember this as "no artwork".
-      return null;
-    }
-    try {
-      if (bytes == null) {
+      if (await _stillValid(none)) {
+        _trace(request, 'cached "no artwork"');
         _missing.add(key);
-        await none.create();
-      } else {
+        return null;
+      }
+      _trace(request, 'stale "no artwork": looking again');
+    }
+    final retry = _retryAfter[key];
+    if (retry != null && _now().isBefore(retry)) return null;
+
+    final (bytes, :certain) = await _fetch(request);
+    _trace(
+      request,
+      bytes != null
+          ? '${bytes.length} bytes'
+          : certain
+          ? 'no artwork'
+          : 'nothing found, but a source failed: not remembered',
+    );
+    try {
+      if (bytes != null) {
         await file.writeAsBytes(bytes);
+        _retryAfter.remove(key);
+        if (await none.exists()) await none.delete();
+      } else if (certain) {
+        _missing.add(key);
+        await none.writeAsString(noArtworkGeneration);
+      } else {
+        // Ask again soon, but not on every rebuild while scrolling.
+        _retryAfter[key] = _now().add(retryUncertainAfter);
       }
     } on FileSystemException {
       // The cache is best-effort.
@@ -176,14 +195,63 @@ class ArtworkCache {
     return bytes;
   }
 
-  Future<Uint8List?> _fetch(ArtworkRequest request) async {
-    final stored = await _source.loadArtwork(
-      songId: request.songId,
-      albumId: request.albumId,
-      sizePx: request.sizePx,
-    );
-    if (stored != null && _sharp(stored, request.sizePx)) return stored;
-    return await _fromFiles(request) ?? stored;
+  /// Written into "no artwork" markers. Markers from another generation
+  /// (an older app whose lookup found less) are looked at again; change
+  /// this when the lookup learns to find more covers.
+  static const noArtworkGeneration = '2';
+
+  /// "No artwork" is looked at again after this long: a cover.jpg may have
+  /// been added, or MediaStore may have caught up.
+  static const noArtworkFor = Duration(days: 7);
+
+  /// After a lookup that failed (rather than found nothing).
+  static const retryUncertainAfter = Duration(minutes: 1);
+
+  final _retryAfter = <String, DateTime>{};
+  final DateTime Function() _now;
+
+  Future<bool> _stillValid(File none) async {
+    try {
+      if (await none.readAsString() != noArtworkGeneration) return false;
+      return _now().difference(await none.lastModified()) < noArtworkFor;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  /// The artwork, and whether a miss can be trusted: false when a source
+  /// failed (MediaStore threw, the file couldn't be read) instead of
+  /// finding nothing.
+  Future<(Uint8List?, {bool certain})> _fetch(ArtworkRequest request) async {
+    Uint8List? stored;
+    var certain = true;
+    try {
+      stored = await _source.loadArtwork(
+        songId: request.songId,
+        albumId: request.albumId,
+        sizePx: request.sizePx,
+      );
+      _trace(
+        request,
+        'MediaStore (album ${request.albumId}): '
+        '${stored == null ? 'none' : jpegSize(stored) ?? '${stored.length} bytes'}',
+      );
+    } on PlatformException catch (e) {
+      // Android 9 throws for some albums without art (the `<unknown>`
+      // album), and access may have been revoked: the song's own pictures
+      // may still be there.
+      _trace(
+        request,
+        'MediaStore error ${e.code}: ${e.message} (${e.details})',
+      );
+      certain = false;
+    }
+    if (stored != null && _sharp(stored, request.sizePx)) {
+      return (stored, certain: true);
+    }
+    final (fromFiles, certain: filesCertain) = await _fromFiles(request);
+    final bytes = fromFiles ?? stored;
+    return (bytes, certain: bytes != null || (certain && filesCertain));
   }
 
   /// Android 7-9 keep album art as small thumbnails (e.g. 320×180), and
@@ -195,25 +263,59 @@ class ArtworkCache {
     return (width < height ? width : height) >= sizePx * sharpEnough;
   }
 
-  Future<Uint8List?> _fromFiles(ArtworkRequest request) async {
+  Future<(Uint8List?, {bool certain})> _fromFiles(
+    ArtworkRequest request,
+  ) async {
     final files = _files;
-    if (files == null) return null;
+    if (files == null) return (null, certain: true);
     final path = await files.pathOf(request.songId);
-    if (path == null) return null;
-    for (final read in [files.embeddedPicture, files.folderImage]) {
+    if (path == null) {
+      _trace(request, 'not in the library');
+      return (null, certain: true);
+    }
+    var certain = true;
+    for (final (name, read) in [
+      ('embedded', files.embeddedPicture),
+      ('folder', files.folderImage),
+    ]) {
       try {
         final image = await read(path);
-        if (image == null) continue;
+        if (image == null) {
+          _trace(request, '$name: none');
+          continue;
+        }
         final jpeg = await files.scale(image, request.sizePx);
-        if (jpeg != null) return jpeg;
-      } on FileSystemException {
-        // No access to the folder (or the file is gone): try the next.
-      } on PlatformException {
+        _trace(
+          request,
+          '$name: ${image.length} bytes -> '
+          '${jpeg == null ? 'not decodable' : jpegSize(jpeg)}',
+        );
+        if (jpeg != null) return (jpeg, certain: true);
+      } on FileSystemException catch (e) {
+        _trace(request, '$name: $e');
+        // The song file can't be read right now (still being written,
+        // gone, no access): don't trust the miss. A folder that can't be
+        // listed (Android 13+ hides images from music apps) stays a plain
+        // miss.
+        if (name == 'embedded') certain = false;
+      } on PlatformException catch (e) {
         // An image the platform can't decode: try the next.
+        _trace(request, '$name: platform error ${e.code}');
       }
     }
-    return null;
+    return (null, certain: certain);
   }
+}
+
+/// Logs each artwork decision. Enabled with
+/// `--dart-define=HARAPLAY_ARTWORK_TRACE=true`.
+const _traceEnabled = bool.fromEnvironment('HARAPLAY_ARTWORK_TRACE');
+
+void _trace(ArtworkRequest request, String message) {
+  if (!_traceEnabled) return;
+  debugPrint(
+    'HaraPlay artwork: song ${request.songId} @${request.sizePx}: $message',
+  );
 }
 
 final artworkCacheProvider = Provider<ArtworkCache>(

@@ -23,6 +23,9 @@ class _Store implements MediaSource {
   final Uint8List? image;
   final sizes = <int>[];
 
+  /// Android 9 throws for some albums without art (the `<unknown>` album).
+  bool fail = false;
+
   @override
   Future<Uint8List?> loadArtwork({
     required int songId,
@@ -30,6 +33,12 @@ class _Store implements MediaSource {
     required int sizePx,
   }) async {
     sizes.add(sizePx);
+    if (fail) {
+      throw PlatformException(
+        code: 'media_store_error',
+        details: 'java.lang.IllegalStateException',
+      );
+    }
     return image;
   }
 
@@ -41,11 +50,19 @@ class _Store implements MediaSource {
 }
 
 class _Files implements ArtworkFiles {
-  _Files({this.embedded, this.folder, this.folderError = false});
+  _Files({
+    this.embedded,
+    this.folder,
+    this.folderError = false,
+    this.fileError = false,
+  });
 
   final Uint8List? embedded;
   final Uint8List? folder;
   final bool folderError;
+
+  /// The song file can't be read right now.
+  bool fileError;
   final calls = <String>[];
 
   @override
@@ -57,6 +74,7 @@ class _Files implements ArtworkFiles {
   @override
   Future<Uint8List?> embeddedPicture(String path) async {
     calls.add('embedded');
+    if (fileError) throw FileSystemException('busy', path);
     return embedded;
   }
 
@@ -185,14 +203,145 @@ void main() {
     expect(jpegSize(Uint8List.fromList([0x89, 0x50, 0x4E, 0x47])), isNull);
   });
 
-  test('pickFolderImage: cover, then folder, then front; any case', () {
+  test('pickFolderImage: cover, folder, front, album, albumart, then '
+      'Windows Media Player\'s files; any case', () {
     expect(
       pickFolderImage(['Front.jpg', 'Folder.JPG', 'cover.png']),
       'cover.png',
     );
     expect(pickFolderImage(['front.jpeg', 'Folder.jpg']), 'Folder.jpg');
     expect(pickFolderImage(['song.mp3', 'FRONT.PNG']), 'FRONT.PNG');
-    expect(pickFolderImage(['song.mp3', 'back.jpg', 'cover.gif']), isNull);
+    expect(pickFolderImage(['Cover.JPG']), 'Cover.JPG');
+    expect(pickFolderImage(['album.jpg', 'AlbumArt.jpg']), 'album.jpg');
+    expect(
+      pickFolderImage([
+        'AlbumArtSmall.jpg',
+        'AlbumArt_{4D5A1F2E-0000-1111-2222-333344445555}_Large.jpg',
+      ]),
+      'AlbumArt_{4D5A1F2E-0000-1111-2222-333344445555}_Large.jpg',
+    );
+    expect(pickFolderImage(['AlbumArtSmall.jpg']), 'AlbumArtSmall.jpg');
+    expect(pickFolderImage(['cover.webp']), 'cover.webp');
+    expect(pickFolderImage(['Folder.BMP']), 'Folder.BMP');
+    expect(
+      pickFolderImage(['song.mp3', 'back.jpg', 'cover.gif', 'photo.jpg']),
+      isNull,
+    );
+  });
+
+  group('MediaStore errors and unreliable misses', () {
+    test('MediaStore throws (Android 9, "<unknown>" album): the embedded '
+        'picture is still used and remembered', () async {
+      final store = _Store()..fail = true;
+      final files = _Files(embedded: embedded);
+      final cache = ArtworkCache(store, () async => temp, files: files);
+      expect(await cache.load(request(384)), [0xE0, 4]);
+      expect(File('${temp.path}/covers/1_384_1.jpg').existsSync(), isTrue);
+    });
+
+    test('MediaStore throws and the file has nothing: not remembered as '
+        '"no artwork"; asked again after a minute', () async {
+      var now = DateTime(2026, 11, 5);
+      final store = _Store()..fail = true;
+      final files = _Files();
+      final cache = ArtworkCache(
+        store,
+        () async => temp,
+        files: files,
+        now: () => now,
+      );
+      expect(await cache.load(request(192)), isNull);
+      expect(File('${temp.path}/covers/1_192_1.none').existsSync(), isFalse);
+      expect(await cache.load(request(192)), isNull);
+      expect(store.sizes, hasLength(1), reason: 'not on every rebuild');
+      now = now.add(ArtworkCache.retryUncertainAfter);
+      await cache.load(request(192));
+      expect(store.sizes, hasLength(2));
+    });
+
+    test('an unreadable song file is not remembered as "no artwork"', () async {
+      var now = DateTime(2026, 11, 5);
+      final files = _Files(embedded: embedded, fileError: true);
+      final cache = ArtworkCache(
+        _Store(),
+        () async => temp,
+        files: files,
+        now: () => now,
+      );
+      expect(await cache.load(request(192)), isNull);
+      expect(File('${temp.path}/covers/1_192_1.none').existsSync(), isFalse);
+      // The download finished.
+      files.fileError = false;
+      now = now.add(ArtworkCache.retryUncertainAfter);
+      expect(await cache.load(request(192)), [0xE0, 2]);
+    });
+
+    test(
+      'a folder that can\'t be listed (Android 13+) is a plain miss',
+      () async {
+        final cache = ArtworkCache(
+          _Store(),
+          () async => temp,
+          files: _Files(folderError: true),
+        );
+        expect(await cache.load(request(192)), isNull);
+        expect(File('${temp.path}/covers/1_192_1.none').existsSync(), isTrue);
+      },
+    );
+  });
+
+  group('"no artwork" markers', () {
+    late DateTime now;
+    late _Files files;
+    late ArtworkCache cache;
+    File marker() => File('${temp.path}/covers/1_192_1.none');
+
+    setUp(() {
+      now = DateTime(2026, 11, 5);
+      files = _Files();
+      cache = ArtworkCache(
+        _Store(),
+        () async => temp,
+        files: files,
+        now: () => now,
+      );
+    });
+
+    Future<void> seed(String contents, DateTime written) async {
+      Directory('${temp.path}/covers').createSync(recursive: true);
+      marker()
+        ..writeAsStringSync(contents)
+        ..setLastModifiedSync(written);
+    }
+
+    test('a current marker is trusted', () async {
+      await seed(ArtworkCache.noArtworkGeneration, now);
+      expect(await cache.load(request(192)), isNull);
+      expect(files.calls, isEmpty);
+    });
+
+    test("0.1.2's markers (empty) are looked at again", () async {
+      await seed('', now);
+      expect(await cache.load(request(192)), isNull);
+      expect(files.calls, contains('embedded'));
+      expect(marker().readAsStringSync(), ArtworkCache.noArtworkGeneration);
+    });
+
+    test('a marker older than a week is looked at again, and a cover found '
+        'then replaces it', () async {
+      await seed(
+        ArtworkCache.noArtworkGeneration,
+        now.subtract(ArtworkCache.noArtworkFor),
+      );
+      final found = ArtworkCache(
+        _Store(),
+        () async => temp,
+        files: _Files(folder: folder),
+        now: () => now,
+      );
+      expect(await found.load(request(192)), [0xF0, 2]);
+      expect(marker().existsSync(), isFalse);
+    });
   });
 }
 

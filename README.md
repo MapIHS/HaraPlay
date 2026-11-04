@@ -160,6 +160,8 @@ uninstalling the other one first.
   --dart-define=HARAPLAY_STARTUP_TRACE=true` builds a release-mode
   HaraPlay Dev (debug key, installs next to the release app) that logs
   each startup step to logcat ("HaraPlay startup:").
+  `--dart-define=HARAPLAY_ARTWORK_TRACE=true` logs where each cover comes
+  from ("HaraPlay artwork:").
 
 ## Clean-room note
 

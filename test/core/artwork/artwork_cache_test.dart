@@ -101,10 +101,15 @@ void main() {
     final source = _CountingSource({
       4: Uint8List.fromList([1]),
     })..fail = true;
-    final cache = ArtworkCache(source, () async => temp);
+    var now = DateTime(2026, 11, 5);
+    final cache = ArtworkCache(source, () async => temp, now: () => now);
     expect(await cache.load(request(4)), isNull);
+    expect(File('${temp.path}/covers/4_192_1.none').existsSync(), isFalse);
 
+    // Not asked again right away (scrolling rebuilds), but after a minute.
     source.fail = false;
+    expect(await cache.load(request(4)), isNull);
+    now = now.add(ArtworkCache.retryUncertainAfter);
     expect(await cache.load(request(4)), [1]);
   });
 
