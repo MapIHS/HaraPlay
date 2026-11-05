@@ -7,7 +7,7 @@ no internet permission at all: nothing leaves your device.
 Built with Flutter, with a bold neo-brutalist look (thick outlines, hard
 shadows, a saffron accent) in light and dark.
 
-> **Status:** early release (0.1.2). Found a bug or missing something? Please
+> **Status:** early release (0.1.3). Found a bug or missing something? Please
 > open an [issue](https://github.com/MapIHS/HaraPlay/issues).
 
 <p>
