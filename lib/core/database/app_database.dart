@@ -50,9 +50,10 @@ class AppDatabase extends _$AppDatabase {
 
   /// v1: M4 schema. v2: songs.name_from_filename.
   /// v3: queue_state.source_label. v4: song_tech_info recreated with
-  /// ReplayGain and the file version. v5: songs.excluded.
+  /// ReplayGain and the file version. v5: songs.excluded. v6: the file-tag
+  /// fallbacks are read again (ID3 text decoding and mojibake repair).
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -67,6 +68,20 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(songTechInfo);
       }
       if (from < 5) await m.addColumn(songs, songs.excluded);
+      if (from < 6) {
+        // Read every file's tags again: 0.1.3 and older kept UTF-16BE text
+        // garbled and Japanese/Chinese/Korean mojibake as it was. The next
+        // tag pass refills this table; the songs keep their tags meanwhile.
+        final exists = await m.database
+            .customSelect(
+              "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+              "AND name = 'song_tag_fallbacks'",
+            )
+            .get();
+        if (exists.isNotEmpty) {
+          await m.database.customStatement('DELETE FROM song_tag_fallbacks');
+        }
+      }
     },
     beforeOpen: (details) => customStatement('PRAGMA foreign_keys = ON'),
   );

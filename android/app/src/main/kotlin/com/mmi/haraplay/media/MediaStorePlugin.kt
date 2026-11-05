@@ -72,6 +72,17 @@ class MediaStorePlugin(private val context: Context, messenger: BinaryMessenger)
                 val albumId = call.argument<Number>("albumId")?.toLong()
                 run(artworkExecutor, result) { artwork.load(songId, albumId, sizePx) }
             }
+            "repairText" -> {
+                // [[text, hint], …] → repaired texts, in order.
+                val items = call.argument<List<List<String?>>>("items")
+                if (items == null) {
+                    result.error("bad_args", "items is required", null)
+                    return
+                }
+                run(queryExecutor, result) {
+                    items.map { (text, hint) -> text?.let { TextRepair.repair(it, hint) } }
+                }
+            }
             "scaleArtwork" -> {
                 val image = call.argument<ByteArray>("image")
                 val sizePx = call.argument<Number>("sizePx")?.toInt()

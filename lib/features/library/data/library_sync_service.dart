@@ -10,6 +10,7 @@ import '../../../core/platform/media_source.dart';
 import '../../../core/platform/media_store_channel.dart';
 import '../../settings/presentation/excluded_folders_controller.dart';
 import 'tag_enrichment_service.dart';
+import 'text_repair.dart';
 
 /// Mirrors MediaStore into the database, then starts the background tag
 /// pass without waiting for it.
@@ -74,7 +75,10 @@ final libraryDaoProvider = Provider<LibraryDao>(
 );
 
 final tagEnrichmentServiceProvider = Provider<TagEnrichmentService>((ref) {
-  final service = TagEnrichmentService(ref.watch(libraryDaoProvider));
+  final service = TagEnrichmentService(
+    ref.watch(libraryDaoProvider),
+    repairer: PlatformTextRepair(ref.watch(mediaStoreChannelProvider)),
+  );
   ref.onDispose(service.dispose);
   return service;
 });

@@ -1,7 +1,13 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraplay/core/database/app_database.dart';
+import 'package:haraplay/core/database/daos/library_dao.dart';
+import 'package:haraplay/features/library/data/tag_merge.dart';
+
+import '../../helpers/test_database.dart';
 
 /// The songs table as schema v2–v4 created it: today's without `excluded`.
 Future<String> songsTableBeforeV5() async {
@@ -133,5 +139,33 @@ void main() {
     addTearDown(db.close);
     final song = await db.select(db.songs).getSingle();
     expect(song.excluded, isFalse);
+  });
+
+  test('v5 → v6 clears the tag fallbacks (to read them again) and keeps '
+      'the songs', () async {
+    final dir = await Directory.systemTemp.createTemp('migrate');
+    addTearDown(() => dir.delete(recursive: true));
+    final file = File('${dir.path}/db.sqlite');
+
+    // A v6 database with a song and its file tags, marked as v5.
+    final before = AppDatabase(NativeDatabase(file));
+    await before.libraryDao.applyScan([mediaSong(1, title: 'Song')]);
+    final row = (await before.select(before.songs).get()).single;
+    await before.libraryDao.saveFileTags([
+      (row, const FileTagsResult.read(SongTags(title: 'Song', year: 2020))),
+    ], readAt: DateTime(2026));
+    expect(await before.select(before.songTagFallbacks).get(), hasLength(1));
+    await before.customStatement('PRAGMA user_version = 5');
+    await before.close();
+
+    final after = AppDatabase(NativeDatabase(file));
+    addTearDown(after.close);
+    expect(await after.select(after.songTagFallbacks).get(), isEmpty);
+    expect((await after.select(after.songs).get()).single.title, 'Song');
+    expect(
+      (await after.libraryDao.enrichmentCandidates()).map((s) => s.id),
+      contains(1),
+      reason: 'read again by the next tag pass',
+    );
   });
 }

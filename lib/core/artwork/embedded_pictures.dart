@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 
+import '../tags/id3.dart';
+
 /// One picture found in an audio file's tags.
 class FoundPicture {
   const FoundPicture(this.bytes, {required this.type, this.mime = ''});
@@ -97,8 +99,8 @@ Uint8List _readTags(File file) {
     final length = raf.lengthSync();
     final head = raf.readSync(10);
     var headLength = 10;
-    if (head.length == 10 && _isId3(head, 0)) {
-      headLength = 10 + _syncsafe(head, 6) + 10;
+    if (head.length == 10 && isId3v2Header(head, 0)) {
+      headLength = id3v2TagLength(head, 0) + 10;
     }
     raf.setPositionSync(0);
     final start = raf.readSync(headLength.clamp(0, length));
@@ -128,7 +130,7 @@ List<FoundPicture> scanTagPictures(Uint8List bytes) {
     i >= 0 && i + 10 <= bytes.length;
     i = _next(bytes, 0x49, i + 1)
   ) {
-    if (_isId3(bytes, i)) {
+    if (isId3v2Header(bytes, i)) {
       try {
         found.addAll(_id3Pictures(bytes, i));
       } on Object {
@@ -154,78 +156,11 @@ int _next(Uint8List bytes, int value, int from) {
   return -1;
 }
 
-bool _isId3(List<int> b, int i) =>
-    b[i] == 0x49 &&
-    b[i + 1] == 0x44 &&
-    b[i + 2] == 0x33 && // "ID3"
-    b[i + 3] >= 2 &&
-    b[i + 3] <= 4 &&
-    b[i + 3 + 1] != 0xFF &&
-    (b[i + 6] | b[i + 7] | b[i + 8] | b[i + 9]) < 0x80;
-
-int _syncsafe(List<int> b, int i) =>
-    (b[i] << 21) | (b[i + 1] << 14) | (b[i + 2] << 7) | b[i + 3];
-
-int _be(List<int> b, int i, int n) {
-  var v = 0;
-  for (var k = 0; k < n; k++) {
-    v = (v << 8) | b[i + k];
-  }
-  return v;
-}
-
-Uint8List _deunsync(List<int> data) {
-  final out = BytesBuilder(copy: false);
-  for (var i = 0; i < data.length; i++) {
-    out.addByte(data[i]);
-    if (data[i] == 0xFF && i + 1 < data.length && data[i + 1] == 0) i++;
-  }
-  return out.toBytes();
-}
-
-List<FoundPicture> _id3Pictures(Uint8List bytes, int start) {
-  final version = bytes[start + 3];
-  final flags = bytes[start + 5];
-  final size = _syncsafe(bytes, start + 6);
-  final end = (start + 10 + size).clamp(0, bytes.length);
-  List<int> body = Uint8List.sublistView(bytes, start + 10, end);
-  // Tag-wide unsynchronisation (2.2, 2.3; 2.4 marks it per frame too).
-  final unsync = flags & 0x80 != 0;
-  if (unsync && version < 4) body = _deunsync(body);
-  var i = 0;
-  if (version >= 3 && flags & 0x40 != 0) {
-    // Extended header.
-    i = version == 4 ? _syncsafe(body, 0) : _be(body, 0, 4) + 4;
-  }
-  final idLength = version == 2 ? 3 : 4;
-  final headerLength = version == 2 ? 6 : 10;
-  final pictures = <FoundPicture>[];
-  while (i + headerLength <= body.length) {
-    if (body[i] == 0) break; // padding
-    final id = ascii.decode(body.sublist(i, i + idLength), allowInvalid: true);
-    final frameSize = switch (version) {
-      2 => _be(body, i + 3, 3),
-      3 => _be(body, i + 4, 4),
-      _ => _syncsafe(body, i + 4),
-    };
-    final frameFlags = version == 2 ? 0 : _be(body, i + 8, 2);
-    final dataStart = i + headerLength;
-    final dataEnd = dataStart + frameSize;
-    if (frameSize <= 0 || dataEnd > body.length) break;
-    if (id == 'APIC' || id == 'PIC') {
-      var data = body.sublist(dataStart, dataEnd);
-      if (version == 4 && (frameFlags & 0x0002 != 0 || unsync)) {
-        data = _deunsync(data);
-      }
-      // 2.4: a data length indicator comes first when flagged.
-      if (version == 4 && frameFlags & 0x0001 != 0) data = data.sublist(4);
-      final picture = _pictureFrame(data, legacy: id == 'PIC');
-      if (picture != null) pictures.add(picture);
-    }
-    i = dataEnd;
-  }
-  return pictures;
-}
+List<FoundPicture> _id3Pictures(Uint8List bytes, int start) => [
+  for (final frame in id3v2Frames(bytes, start))
+    if (frame.id == 'APIC' || frame.id == 'PIC')
+      ?_pictureFrame(frame.data, legacy: frame.id == 'PIC'),
+];
 
 /// An APIC (or ID3v2.2 PIC) frame body.
 FoundPicture? _pictureFrame(List<int> data, {required bool legacy}) {

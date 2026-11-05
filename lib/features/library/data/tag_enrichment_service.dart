@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/database/daos/library_dao.dart';
 import 'file_tag_reader.dart';
+import 'text_repair.dart';
 
 /// Progress of the background tag pass.
 @immutable
@@ -26,12 +27,14 @@ class TagEnrichmentService {
   TagEnrichmentService(
     this._dao, {
     this._reader = const FileTagReader(),
+    this._repairer = const NoTextRepair(),
     this.batchSize = 25,
     this._clock = DateTime.now,
   });
 
   final LibraryDao _dao;
   final FileTagReader _reader;
+  final TextRepairer _repairer;
   final DateTime Function() _clock;
   final int batchSize;
 
@@ -52,7 +55,12 @@ class TagEnrichmentService {
     for (var start = 0; start < candidates.length; start += batchSize) {
       if (_disposed) return;
       final batch = candidates.skip(start).take(batchSize).toList();
-      final results = await _reader.readAll([for (final s in batch) s.path]);
+      final paths = [for (final s in batch) s.path];
+      final results = await repairFileTags(
+        _repairer,
+        paths,
+        await _reader.readAll(paths),
+      );
       if (_disposed) return;
       await _dao.saveFileTags([
         for (var i = 0; i < batch.length; i++) (batch[i], results[i]),

@@ -128,6 +128,8 @@ Uint8List mp3WithId3({
   bool id3v1 = false,
   int padding = 64,
   List<int>? audio,
+  List<RawTextFrame> textFrames = const [],
+  Id3v1Fields? id3v1Fields,
 }) {
   final frames = <int>[];
   if (version == 2) {
@@ -144,8 +146,13 @@ Uint8List mp3WithId3({
       frames.addAll(f2('PIC', _pictureBody(p, 2)));
     }
   } else {
-    frames.addAll(_text('TIT2', title, version));
+    if (!textFrames.any((f) => f.id == 'TIT2')) {
+      frames.addAll(_text('TIT2', title, version));
+    }
     if (album != null) frames.addAll(_text('TALB', album, version));
+    for (final f in textFrames) {
+      frames.addAll(_frame(f.id, [f.encoding, ...f.raw], version));
+    }
     for (final p in pictures) {
       frames.addAll(
         _frame(
@@ -174,7 +181,10 @@ Uint8List mp3WithId3({
       ...audio
     else
       for (var i = 0; i < 8; i++) ..._silentFrame,
-    if (id3v1) ..._id3v1(title),
+    if (id3v1Fields != null)
+      ...id3v1Fields.bytes()
+    else if (id3v1)
+      ..._id3v1(title),
   ]);
 }
 
@@ -213,3 +223,42 @@ List<int> apeCoverTag(Uint8List image) {
 /// handled: append APE tags to files built without one).
 Uint8List withTrailer(Uint8List mp3, List<int> tag) =>
     Uint8List.fromList([...mp3, ...tag]);
+
+/// An ID3v2 text frame with an explicit encoding byte (0 Latin-1,
+/// 1 UTF-16 with BOM, 2 UTF-16BE, 3 UTF-8) and raw text bytes, so tests can
+/// write what real taggers write, including what they get wrong.
+class RawTextFrame {
+  const RawTextFrame(this.id, this.encoding, this.raw);
+
+  final String id;
+  final int encoding;
+  final List<int> raw;
+}
+
+/// ID3v1 fields as raw bytes (30 each), e.g. Shift-JIS from old taggers.
+class Id3v1Fields {
+  const Id3v1Fields({
+    this.title = const [],
+    this.artist = const [],
+    this.album = const [],
+  });
+
+  final List<int> title;
+  final List<int> artist;
+  final List<int> album;
+
+  List<int> bytes() {
+    List<int> field(List<int> raw) => [
+      ...raw.take(30),
+      ...List.filled(30 - raw.take(30).length, 0),
+    ];
+    return [
+      ...ascii.encode('TAG'),
+      ...field(title),
+      ...field(artist),
+      ...field(album),
+      ...List.filled(4 + 30, 0), // year, comment
+      255, // genre: none
+    ];
+  }
+}

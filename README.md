@@ -116,6 +116,9 @@ flutter test
 flutter run                    # debug build on a connected device
 ```
 
+The Android side has JVM unit tests too (text-encoding repair):
+`cd android && ./gradlew :app:testDebugUnitTest` (JDK 17 or newer).
+
 The two build types are separate Android apps, so they can be installed
 side by side, each with its own data:
 

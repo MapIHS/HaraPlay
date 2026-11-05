@@ -74,6 +74,16 @@ class MediaStoreChannel implements MediaSource {
     'sizePx': sizePx,
   });
 
+  /// Repairs mojibake (see `TextRepair.kt`): (text, hint) → text.
+  Future<List<String?>> repairText(List<(String?, String?)> items) async {
+    final reply = await _channel.invokeListMethod<String?>('repairText', {
+      'items': [
+        for (final (text, hint) in items) [text, hint],
+      ],
+    });
+    return reply ?? [for (final (text, _) in items) text];
+  }
+
   /// [image] (any format Android decodes) cropped to its centre square and
   /// scaled down to at most [sizePx], as JPEG; null if it isn't an image.
   Future<Uint8List?> scaleArtwork(Uint8List image, int sizePx) =>

@@ -86,3 +86,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // JVM unit tests (android/app/src/test): ./gradlew :app:testDebugUnitTest
+    testImplementation("junit:junit:4.13.2")
+}

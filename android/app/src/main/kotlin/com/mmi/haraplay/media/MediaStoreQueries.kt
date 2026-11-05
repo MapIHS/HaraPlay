@@ -82,6 +82,11 @@ class MediaStoreQueries(private val resolver: ContentResolver) {
                     strings += value
                     strings.size - 1
                 }
+            // Android 9's scanner (and ID3 "ISO-8859-1" frames) can turn
+            // Japanese, Chinese or Korean tags into Latin-1 mojibake.
+            val repaired = HashMap<String, String>()
+            fun tag(value: String?): String? =
+                value?.let { repaired.getOrPut(it) { TextRepair.repair(it) } }
             @Suppress("DEPRECATION")
             val dataIndex = c.getColumnIndex(AudioColumns.DATA)
             val titleIndex = c.getColumnIndex(AudioColumns.TITLE)
@@ -94,10 +99,14 @@ class MediaStoreQueries(private val resolver: ContentResolver) {
                 }
                 for ((key, values) in shared) {
                     val i = sharedIndex.getValue(key)
-                    values[row] = intern(if (i < 0 || c.isNull(i)) null else c.getString(i))
+                    val value = if (i < 0 || c.isNull(i)) null else c.getString(i)
+                    // The MIME type is never mojibake.
+                    values[row] = intern(if (key == "mimeType") value else tag(value))
                 }
-                titles += if (titleIndex < 0 || c.isNull(titleIndex)) null else c.getString(titleIndex)
                 val path = if (dataIndex < 0 || c.isNull(dataIndex)) null else c.getString(dataIndex)
+                val title = if (titleIndex < 0 || c.isNull(titleIndex)) null else c.getString(titleIndex)
+                // The file name often has the title right: it breaks ties.
+                titles += title?.let { TextRepair.repair(it, hint = path?.substringAfterLast('/')) }
                 val slash = path?.lastIndexOf('/') ?: -1
                 if (path == null || slash < 0) {
                     folders[row] = -1
