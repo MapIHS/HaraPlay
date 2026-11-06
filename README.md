@@ -86,6 +86,9 @@ There is **no `INTERNET` permission**: HaraPlay can't connect to anything.
 | `ACCESS_NETWORK_STATE` | Added by ExoPlayer (Android's media player library). It only lets the app check whether a network connection exists; it gives **no internet access**, and HaraPlay never uses it, since `INTERNET` is absent. |
 | `com.mmi.haraplay.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | Added by AndroidX. A private, signature-level permission that keeps the app's own internal broadcasts from reaching other apps; it grants nothing. |
 
+See the [privacy policy](PRIVACY.md) (English and Bahasa Indonesia):
+HaraPlay collects and shares no data.
+
 ## Known limitations
 
 - Gapless playback of **AAC / M4A** albums has a tiny 5–11 ms dip at each
