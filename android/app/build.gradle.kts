@@ -8,9 +8,15 @@ plugins {
 
 // Release signing comes from android/key.properties, which points at the
 // keystore outside the repository. Both are git-ignored and must never be
-// committed.
+// committed. HARAPLAY_SIGNING_PROPERTIES=/path/to/other.properties signs
+// with another key instead: the Play upload key for app bundles, while
+// GitHub APKs keep the app signing key from key.properties.
 val keyProperties = Properties().apply {
-    val file = rootProject.file("key.properties")
+    val override = System.getenv("HARAPLAY_SIGNING_PROPERTIES")
+    val file = if (override.isNullOrBlank()) rootProject.file("key.properties") else file(override)
+    if (!override.isNullOrBlank() && !file.exists()) {
+        throw GradleException("HARAPLAY_SIGNING_PROPERTIES: $override not found")
+    }
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
