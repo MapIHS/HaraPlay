@@ -53,6 +53,7 @@ abstract final class HaraIcons {
   static const IconData repeat1 = IconData(0xe1fd, fontFamily: _family);
   static const IconData search = IconData(0xe151, fontFamily: _family);
   static const IconData settings = IconData(0xe154, fontFamily: _family);
+  static const IconData shieldCheck = IconData(0xe1ff, fontFamily: _family);
   static const IconData shuffle = IconData(0xe15e, fontFamily: _family);
   static const IconData skipBack = IconData(0xe15f, fontFamily: _family);
   static const IconData skipForward = IconData(0xe160, fontFamily: _family);
@@ -113,6 +114,7 @@ abstract final class HaraIcons {
     'repeat-1': repeat1,
     'search': search,
     'settings': settings,
+    'shield-check': shieldCheck,
     'shuffle': shuffle,
     'skip-back': skipBack,
     'skip-forward': skipForward,

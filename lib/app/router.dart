@@ -21,6 +21,7 @@ import '../features/playlists/presentation/playlist_detail_screen.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/excluded_folders_screen.dart';
+import '../features/settings/presentation/privacy_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 import 'features.dart';
@@ -36,6 +37,7 @@ abstract final class AppRoutes {
   static const onboarding = '/onboarding';
   static const settings = '/settings';
   static const stats = '/stats';
+  static const privacy = '/settings/privacy';
   static const equalizer = '/equalizer';
   static const excludedFolders = '/settings/excluded-folders';
   static const designGallery = '/settings/gallery';
@@ -238,6 +240,10 @@ GoRouter createRouter({
         parentNavigatorKey: rootKey,
         builder: (context, state) => const SettingsScreen(),
         routes: [
+          GoRoute(
+            path: 'privacy',
+            builder: (context, state) => const PrivacyScreen(),
+          ),
           if (kDebugMode) ...[
             GoRoute(
               path: 'gallery',

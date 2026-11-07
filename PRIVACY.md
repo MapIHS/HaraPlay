@@ -1,6 +1,6 @@
 # HaraPlay privacy policy
 
-*Last updated: 6 November 2026* · [Bahasa Indonesia](#kebijakan-privasi-haraplay)
+*Last updated: 7 November 2026* · [Bahasa Indonesia](#kebijakan-privasi-haraplay)
 
 HaraPlay is an offline music player for Android. It plays the music files
 already on your phone.
@@ -35,9 +35,10 @@ you clear the app's data or uninstall it.
 - **HaraPlay's backup** (Settings › Back up) creates a file only when you ask
   for it, in a place you choose. HaraPlay never sends it anywhere; what
   happens to it afterwards is up to you.
-- **Android's own device backup**, if you turned it on in your phone's
-  settings, may include HaraPlay's data. That backup is handled by Android
-  and your Google account, not by HaraPlay.
+- **Android's automatic cloud backup is turned off** for HaraPlay (from
+  version 0.1.5), so its data isn't copied to your Google account. When you
+  set up a new phone by connecting it to the old one, Android 12 and newer
+  can still copy it directly between the two phones.
 
 ## Children
 
@@ -45,15 +46,15 @@ HaraPlay collects no data from anyone, including children.
 
 ## Changes and contact
 
-If this policy changes, the new version will be published here, with a new
-date. Questions: open an issue at
+This policy is also shown in the app (Settings › Privacy). If it changes,
+the new version will be published here, with a new date. Questions: open an issue at
 <https://github.com/MapIHS/HaraPlay/issues>.
 
 ---
 
 # Kebijakan privasi HaraPlay
 
-*Terakhir diperbarui: 6 November 2026* · [English](#haraplay-privacy-policy)
+*Terakhir diperbarui: 7 November 2026* · [English](#haraplay-privacy-policy)
 
 HaraPlay adalah pemutar musik offline untuk Android. HaraPlay memutar file
 musik yang sudah ada di ponsel Anda.
@@ -92,9 +93,10 @@ HaraPlay.
   memintanya, di tempat yang Anda pilih. HaraPlay tidak pernah mengirim file
   itu ke mana pun; apa yang terjadi dengan file itu selanjutnya terserah
   Anda.
-- **Cadangan perangkat bawaan Android**, jika Anda mengaktifkannya di
-  setelan ponsel, mungkin menyertakan data HaraPlay. Cadangan itu dikelola
-  oleh Android dan akun Google Anda, bukan oleh HaraPlay.
+- **Cadangan cloud otomatis Android dinonaktifkan** untuk HaraPlay (sejak
+  versi 0.1.5), sehingga datanya tidak disalin ke akun Google Anda. Saat
+  Anda menyiapkan ponsel baru dengan menghubungkannya ke ponsel lama,
+  Android 12 ke atas tetap dapat menyalinnya langsung antara kedua ponsel.
 
 ## Anak-anak
 
@@ -102,6 +104,7 @@ HaraPlay tidak mengumpulkan data dari siapa pun, termasuk anak-anak.
 
 ## Perubahan dan kontak
 
-Jika kebijakan ini berubah, versi barunya akan dipublikasikan di sini
-dengan tanggal baru. Pertanyaan: buka issue di
+Kebijakan ini juga ditampilkan di aplikasi (Settings › Privacy). Jika
+kebijakan ini berubah, versi barunya akan dipublikasikan di sini dengan
+tanggal baru. Pertanyaan: buka issue di
 <https://github.com/MapIHS/HaraPlay/issues>.

@@ -42,6 +42,7 @@ repeat
 repeat-1
 search
 settings
+shield-check
 shuffle
 skip-back
 skip-forward

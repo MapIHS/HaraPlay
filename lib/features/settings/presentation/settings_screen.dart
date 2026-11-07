@@ -63,6 +63,12 @@ class SettingsScreen extends StatelessWidget {
           const BackupSettings(),
           const SectionHeader(title: 'About'),
           SettingsTile(
+            icon: HaraIcons.shieldCheck,
+            title: 'Privacy',
+            subtitle: 'No data collected or shared; nothing leaves your phone',
+            onTap: () => context.push(AppRoutes.privacy),
+          ),
+          SettingsTile(
             icon: HaraIcons.info,
             title: 'Open-source licenses',
             subtitle: 'Fonts, icons and libraries used by HaraPlay',

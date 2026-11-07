@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: no automatic cloud backup of HaraPlay's data (likes,
+     playlists, play history, settings). allowBackup="false" in the
+     manifest does the same on older versions. A direct device-to-device
+     transfer when setting up a new phone stays allowed. HaraPlay's own
+     backup file (Settings › Back up) is the way to move data otherwise. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+</data-extraction-rules>
